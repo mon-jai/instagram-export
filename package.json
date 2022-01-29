@@ -1,0 +1,23 @@
+{
+  "name": "instagram-download-cli",
+  "version": "0.1.0",
+  "description": "TODO",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mon-jai/instagram-download-cli.git"
+  },
+  "keywords": [
+    "instagram",
+    "download"
+  ],
+  "author": "Loh Ka Hong",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mon-jai/instagram-download-cli/issues"
+  },
+  "homepage": "https://github.com/mon-jai/instagram-download-cli#readme"
+}
