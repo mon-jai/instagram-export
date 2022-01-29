@@ -19,5 +19,18 @@
   "bugs": {
     "url": "https://github.com/mon-jai/instagram-download-cli/issues"
   },
-  "homepage": "https://github.com/mon-jai/instagram-download-cli#readme"
+  "homepage": "https://github.com/mon-jai/instagram-download-cli#readme",
+  "dependencies": {
+    "commander": "^9.0.0",
+    "download": "^8.0.0",
+    "keytar": "^7.7.0",
+    "puppeteer": "^13.1.2",
+    "ts-node": "^10.4.0"
+  },
+  "devDependencies": {
+    "@types/download": "^8.0.1",
+    "@types/node": "^17.0.13"
+  },
+  "type": "module"
+  }
 }
