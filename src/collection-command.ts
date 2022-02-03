@@ -7,14 +7,16 @@ import { queue } from "async"
 import { Command } from "commander"
 import download from "download"
 import keytar from "keytar"
-import { last, pick, pickBy, random } from "lodash-es"
-import puppeteer from "puppeteer"
+import { isEmpty, last, pick, pickBy, random } from "lodash-es"
+import puppeteer, { Page } from "puppeteer"
 import callbackRead from "read"
 import type { ReadonlyDeep } from "type-fest"
 
 import { KEYTAR_SERVICE_NAME } from "./constants.js"
 
 const read = promisify(callbackRead)
+
+// The following types are created for constructing other types (except Image and Video)
 
 type Location = {
   pk: number
@@ -28,11 +30,15 @@ type Location = {
 type User = { pk: number; username: string; full_name: string }
 type Caption = { pk: string; text: string; created_at: number }
 type Image = { image_versions2: { candidates: { url: string }[] } }
-type Video = Image & { video_versions: [{ url: string }] } // All videos contain an "image_versions2" key
+// All videos contain an "image_versions2" key
+type Video = Image & { video_versions: [{ url: string }] }
 type Carousel = { carousel_media: (Image | Video)[] }
 type UndocumentedProperties = { [Key: string]: any }
 
-// The following types are not meant to be altered within the lifecycle of the script
+// The following types are not meant to be altered once created,
+// so we mark them as ReadonlyDeep
+
+// The properties of a Instagram post that will be extracted and saved in the output data file
 type Post = ReadonlyDeep<{
   pk: string
   id: string
@@ -42,13 +48,9 @@ type Post = ReadonlyDeep<{
   user: User
   caption?: Caption
 }>
-type RawPost = ReadonlyDeep<
-  Omit<Post, "location" | "user" | "caption"> & {
-    location?: Location & UndocumentedProperties
-    user: User & UndocumentedProperties
-    caption: (Caption & UndocumentedProperties) | null
-  } & (Image | Video | Carousel)
->
+// The structure of the output data file
+type DataStore = ReadonlyDeep<{ url: string; username: string; download_media: boolean; posts: Post[] }>
+// The structure used for downloading medias from Instagram
 type MediaSource = ReadonlyDeep<
   { code: string } & (
     | { type: "image"; url: string }
@@ -56,9 +58,20 @@ type MediaSource = ReadonlyDeep<
     | { type: "carousel"; urls: string[] }
   )
 >
-type InstagramResponse = ReadonlyDeep<{ items: [{ media: RawPost }] }>
-type DataStore = ReadonlyDeep<{ url: string; username: string; download_media: boolean; posts: Post[] }>
 
+// The data structure Instagram used to store posts
+// Properties that are not used will not be documented
+type RawPost = ReadonlyDeep<
+  Omit<Post, "location" | "user" | "caption"> & {
+    location?: Location & UndocumentedProperties
+    user: User & UndocumentedProperties
+    caption: (Caption & UndocumentedProperties) | null
+  } & (Image | Video | Carousel)
+>
+// The raw data format returned by Instagram
+type InstagramResponse = ReadonlyDeep<{ items: [{ media: RawPost }] }>
+
+// All the errors thrown by us in this script
 enum CollectionError {
   NOT_INITIALIZED,
   NO_NEW_PHOTO,
@@ -67,7 +80,9 @@ enum CollectionError {
   PASSWORD_NOT_FOUND,
 }
 
-const COLLECTION_DATA_FILE = join(process.cwd(), "data.json")
+// Constants
+
+const DATA_FILE_PATH = join(process.cwd(), "data.json")
 
 // Utility functions
 
@@ -76,13 +91,14 @@ function printLine(message: string) {
 }
 
 function replaceLine(message: string) {
-  process.stdout.clearLine(0)
+  // https://stackoverflow.com/a/59805130
+  process.stdout.clearLine(-1)
   process.stdout.cursorTo(0)
   process.stdout.write(message)
 }
 
-function isValidYesNoOption(userinput: string): userinput is "Y" | "N" {
-  return userinput == "Y" || userinput == "N"
+function isValidYesNoOption(userInput: string): userInput is "Y" | "N" {
+  return userInput == "Y" || userInput == "N"
 }
 
 // Casting functions
@@ -99,9 +115,9 @@ function postFrom(rawPost: RawPost): Post {
     caption: pick(caption, ["pk", "text", "created_at"]),
   }
 
-  // For value equales to undefined (location) or null (caption), pick returns a empty object
-  // We remove those empty object from output
-  return pickBy(post, value => typeof value != "object" || Object.keys(value).length != 0) as Post
+  // For value equals to undefined (location) or null (caption), pick returns a empty object
+  // We remove those empty object before returning
+  return pickBy(post, value => typeof value != "object" || !isEmpty(value)) as Post
 }
 
 function urlFrom(media: ReadonlyDeep<Image | Video>) {
@@ -130,7 +146,7 @@ function mediaSourceFrom(rawPost: RawPost): MediaSource {
 }
 
 function rawPostsFrom(responses: ReadonlyDeep<InstagramResponse[]>) {
-  // Order of responses at the begining: [{ items: [12, 11, 10, 9] }, { items: [8, 7, 6, 5] }, { items: [4, 3, 2, 1] }]
+  // Order of responses at the beginning: [{ items: [12, 11, 10, 9] }, { items: [8, 7, 6, 5] }, { items: [4, 3, 2, 1] }]
   return Array.from(responses)
     .reverse() // [{ items: [4, 3, 2, 1] }, { items: [8, 7, 6, 5] }, { items: [12, 11, 10, 9] }]
     .map(result => result.items.map(item => item.media).reverse()) // [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
@@ -151,105 +167,155 @@ function fullCommandNameFrom(command: Readonly<Command>) {
 
 // Here the main logic begins
 
-async function getNewPostsFromInstagram(
-  url: string,
-  auth: { username: string; password: string },
-  savedPosts: ReadonlyDeep<Post[]>
-) {
-  let browser: puppeteer.Browser
-  return new Promise<ReadonlyDeep<RawPost[]>>(async (resolve, reject) => {
-    browser = await puppeteer.launch()
-    const page = await browser.newPage()
-
-    const responses: InstagramResponse[] = []
-    const firstRun = savedPosts.length == 0
-    const lastSavedPosts: Post = last(savedPosts) as Post
-
-    printLine("Getting posts from Instagram...")
-
-    page.setDefaultTimeout(0)
-    page.on("response", async response => {
-      if (!new URL(response.request().url()).pathname.match(/\/api\/v1\/feed\/collection\/\d+\/posts\//)) {
-        return
-      }
-
-      let json: InstagramResponse
-      try {
-        json = await response.json()
-      } catch {
-        return
-      }
-
-      responses.push(json)
-
-      // First response
-      if (responses.length == 1 && !firstRun && last(rawPostsFrom(responses))?.pk == lastSavedPosts.pk) {
-        reject(CollectionError["NO_NEW_PHOTO"])
-      }
-
-      if (!firstRun && json.items.find(Post => Post.media.pk == lastSavedPosts.pk)) {
-        const rawPosts = rawPostsFrom(responses)
-        const indexOfNewElements = rawPosts.findIndex(rawPost => rawPost.pk == lastSavedPosts.pk) + 1
-
-        resolve(rawPosts.slice(indexOfNewElements))
-      }
+async function login(page: Page, auth: { username: string; password: string }) {
+  // Navigate to login page
+  await page.goto("https://www.instagram.com/accounts/login/", { waitUntil: "networkidle0" })
+  await page.type('input[name="username"]', auth.username, { delay: 100 + random(0, 150) })
+  await page.type('input[name="password"]', auth.password, { delay: 100 + random(0, 150) })
+  await page.evaluate(() => (document.querySelector('button[type="submit"]') as HTMLButtonElement).click())
+  // If Instagram displayed a rate limit message, exit earlier
+  // <p aria-atomic="true" data-testid="login-error-message" id="slfErrorAlert" role="alert">Please wait a few minutes before you try again.</p>
+  page
+    .waitForSelector('p[data-testid="login-error-message"]')
+    .then(() => {
+      throw CollectionError["RATE_LIMIT_REACHED"]
     })
+    // Under normal executions, browser will be closed while this promise is still waiting
+    // thus ProtocolError will be thrown
+    .catch(() => {})
 
-    // Login to Instagram
-    await page.goto("https://www.instagram.com/", { waitUntil: "networkidle0" })
-    await page.type('input[name="username"]', auth.username, { delay: 100 + random(0, 150) })
-    await page.type('input[name="password"]', auth.password, { delay: 100 + random(0, 150) })
-    await page.evaluate(`document.querySelector('button[type="submit"]').click()`)
-    // If Instagram displayed a rate limit message, exit the function earlier
-    // <p aria-atomic="true" data-testid="login-error-message" id="slfErrorAlert" role="alert">Please wait a few minutes before you try again.</p>
-    page
-      .waitForSelector('p[data-testid="login-error-message"]')
-      .then(() => reject(CollectionError["RATE_LIMIT_REACHED"]))
-      .catch(() => {}) // ProtocolError will be thrown under normal execution after the "finally" cleanup function being executed
+  // Skip "Save Your Login Info?" page, if it is displayed
+  const saveLoginInfoPageDisplayed: boolean = await Promise.race([
+    // Skip the check if the page doesn't load after 3 seconds
+    new Promise<boolean>(resolve => setTimeout(() => resolve(false), 3000)),
+    new Promise<boolean>(async resolve => {
+      await page.waitForFunction(() => window.location.pathname == "/accounts/onetap/")
+      resolve(true)
+    })
+      // Under normal executions, browser will be closed while this promise is still waiting
+      // thus ProtocolError will be thrown
+      .catch(() => false),
+  ])
+  if (saveLoginInfoPageDisplayed) {
+    // Press "Not Now" button
+    await page.evaluate(() => document.querySelector<HTMLElement>('main div > div > button[type="button"]')?.click())
+  }
+}
+
+async function captureAPIResponses(page: Page, collectionUrl: string, lastSavedPostPk: string | null) {
+  return new Promise<InstagramResponse[]>(async (resolve, reject) => {
+    const responses: InstagramResponse[] = []
 
     // ProtocolError will be thrown,
-    // if the "finally" cleanup function being executed (promise is either resolved or rejected) before all the statements below are executed
+    // if the "finally" cleanup function being executed (the promise is either resolved or rejected)
+    // before all the actions (goto, evaluate, waitFor) we requested are executed
     try {
-      // "Save Your Login Info?" page
-      await page.waitForFunction('window.location.pathname == "/accounts/onetap/"')
-      await page.evaluate(`document.querySelector('button[type="button"]')?.click()`)
+      // Capture XHR responses
+      page.on("response", async response => {
+        if (!new URL(response.request().url()).pathname.match(/\/api\/v1\/feed\/collection\/\d+\/posts\//)) {
+          return
+        }
 
-      // Navigate to collection
-      await page.goto(url)
+        const json: InstagramResponse | null = await response.json().catch(() => null)
+
+        if (json == null) return
+        responses.push(json)
+
+        // If this is the first incoming response,
+        // and the first post in the response is the last post saved in last run
+        if (
+          responses.length == 1 &&
+          lastSavedPostPk != null &&
+          (last(rawPostsFrom(responses)) as Post).pk == lastSavedPostPk
+        ) {
+          reject(CollectionError["NO_NEW_PHOTO"])
+        }
+
+        // The promise exits here
+        // if this is not the first run and we found the last post saved from last run
+        // in order to avoid unnecessarily fetching posts that are already saved to the data file
+        // ---
+        // json.items.find() is O(N) at worst
+        // but rawPostsFrom() combined with rawPosts.findIndex() will be O(2N) at worst ( both of them are O(N) )
+        // so checking with json.items.find() will be faster
+        if (lastSavedPostPk != null && json.items.find(Post => Post.media.pk == lastSavedPostPk)) {
+          resolve(responses)
+        }
+      })
+
+      // Navigate to collection page
+      await page.goto(collectionUrl)
       // Wait until the first image being loaded
       // Spinner might not be mounted to DOM if the collection has too few items therefore looking for it may stuck the crawler
       await page.waitForSelector("main article a img")
       // Scroll to bottom to load old posts
-      await page.evaluate("setInterval(() => window.scrollTo(0, document.body.scrollHeight), 10)")
+      await page.evaluate(() => setInterval(() => window.scrollTo(0, document.body.scrollHeight), 10))
       // Wait until all posts are loaded (hence the spinner is removed from DOM)
       // There are two spinner elements that will be mounted to DOM
       // both of them are indirect children of `main` but only the second one get mounted is a indirect child of `article`
-      await page.waitForFunction(`document.querySelector('article [data-visualcompletion="loading-state"]') == null`)
+      await page.waitForFunction(
+        () => document.querySelector('article [data-visualcompletion="loading-state"]') == null
+      )
+
+      // Fetched the whole collection, yet didn't found the last post saved from last run
+      resolve(responses)
     } catch (error: any) {
       if (error.name != "ProtocolError") throw error
     }
+  })
+}
 
-    // If we didn't find the last saved post from the previous run / this is the first run
+async function getNewPosts(
+  collectionUrl: string,
+  auth: { username: string; password: string },
+  postsSavedFromLastRun: ReadonlyDeep<Post[]>
+): Promise<ReadonlyDeep<RawPost[]>> {
+  const browser = await puppeteer.launch()
+  const page = await browser.newPage()
 
-    let rawPosts = rawPostsFrom(responses)
+  try {
+    page.setDefaultTimeout(0)
+    // null if this is the first run
+    const lastSavedPostPk = last(postsSavedFromLastRun)?.pk ?? null
 
-    if (!firstRun) {
-      // Look for posts saved in last run
-      for (const savedPost of Array.from(savedPosts).reverse()) {
-        const indexOfNewElements = rawPosts.findIndex(rawPost => rawPost.pk === savedPost.pk)
+    printLine("Getting posts from Instagram...")
 
-        if (indexOfNewElements != -1) {
-          rawPosts = rawPosts.slice(indexOfNewElements)
+    await login(page, auth)
+
+    const responses = await captureAPIResponses(page, collectionUrl, lastSavedPostPk)
+    const rawPosts = rawPostsFrom(responses)
+
+    if (lastSavedPostPk == null) {
+      // This is the first run
+      return rawPosts
+    }
+
+    let indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == lastSavedPostPk)
+
+    if (indexOfLastSavedPost == -1) {
+      // We didn't find the last post saved in last run
+
+      // Default value, return the whole rawPosts array (0 to rawPosts.length -1)
+      // if we can't find any posts from last run
+      indexOfLastSavedPost = 0
+
+      // Look for posts saved in last run, one by one, from bottom to top
+      for (const post of Array.from(postsSavedFromLastRun).reverse()) {
+        const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
+
+        if (indexOfPost != -1) {
+          indexOfLastSavedPost = indexOfPost
           break
         }
       }
     }
 
-    resolve(rawPosts)
-  }).finally(async () => {
+    return rawPosts.slice(indexOfLastSavedPost + 1)
+  } finally {
+    // Cleanup
     await browser.close()
     replaceLine("Getting posts from Instagram... Done\n")
-  })
+  }
 }
 
 async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) {
@@ -271,10 +337,7 @@ async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) {
     }
   }, 10)
 
-  for (const media of mediaSources) {
-    downloadQueue.push(media)
-  }
-
+  downloadQueue.push(Array.from(mediaSources))
   await downloadQueue.drain()
 
   if (downloadedCount != mediaSources.length) {
@@ -282,7 +345,7 @@ async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) {
   }
 }
 
-class CollectionCommand extends Command {
+export default class CollectionCommand extends Command {
   constructor(name: string) {
     super(name)
 
@@ -303,7 +366,7 @@ class CollectionCommand extends Command {
         const data: DataStore = { url, username, download_media: download_media == "Y", posts: [] }
 
         keytar.setPassword(KEYTAR_SERVICE_NAME, username, password)
-        await writeFile(COLLECTION_DATA_FILE, JSON.stringify(data, null, 2))
+        await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
       })
 
     this.action(async (_, command: Command) => {
@@ -312,10 +375,15 @@ class CollectionCommand extends Command {
           url,
           username,
           download_media,
-          posts: savedPosts,
-        }: Partial<DataStore> = JSON.parse(await readFile(COLLECTION_DATA_FILE, "utf8"))
+          posts: postsSavedFromLastRun,
+        }: Partial<DataStore> = JSON.parse(await readFile(DATA_FILE_PATH, "utf8"))
 
-        if (url == undefined || username == undefined || download_media == undefined || savedPosts == undefined) {
+        if (
+          url == undefined ||
+          username == undefined ||
+          download_media == undefined ||
+          postsSavedFromLastRun == undefined
+        ) {
           throw CollectionError["NOT_INITIALIZED"]
         }
 
@@ -327,14 +395,17 @@ class CollectionCommand extends Command {
 
         const startTime = Date.now()
 
-        const newPosts = await getNewPostsFromInstagram(url, { username, password }, savedPosts)
-        const posts = [...savedPosts, ...newPosts.map(postFrom)]
-        const newMediaSources = newPosts.map(mediaSourceFrom)
-        const data: DataStore = { url, username, download_media, posts }
+        const newPosts = await getNewPosts(url, { username, password }, postsSavedFromLastRun)
+        const data: DataStore = {
+          url,
+          username,
+          download_media,
+          posts: [...postsSavedFromLastRun, ...newPosts.map(postFrom)],
+        }
 
         console.log(`${newPosts.length} new photo found`)
-        if (download_media) await downloadMedias(newMediaSources)
-        await writeFile(COLLECTION_DATA_FILE, JSON.stringify(data, null, 2))
+        if (download_media) await downloadMedias(newPosts.map(mediaSourceFrom))
+        await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
 
         console.log(`Time taken: ${(Date.now() - startTime) / 1000} seconds`)
       } catch (error: any) {
@@ -351,5 +422,3 @@ class CollectionCommand extends Command {
     })
   }
 }
-
-export default CollectionCommand
