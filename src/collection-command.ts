@@ -2,13 +2,14 @@ import { readFile, writeFile } from "fs/promises"
 import { join } from "path"
 import { URL } from "url"
 import { promisify } from "util"
-import download from "download"
-import puppeteer from "puppeteer"
-import { Command } from "commander"
-import { last, random, pick, pickBy } from "lodash-es"
+
 import { queue } from "async"
-import callbackRead from "read"
+import { Command } from "commander"
+import download from "download"
 import keytar from "keytar"
+import { last, pick, pickBy, random } from "lodash-es"
+import puppeteer from "puppeteer"
+import callbackRead from "read"
 
 const read = promisify(callbackRead)
 

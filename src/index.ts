@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-import CollectionCommand from "./collection-command.js"
 import { Command } from "commander"
+
+import CollectionCommand from "./collection-command.js"
 
 const program = new Command()
 
 program.name("instagram-dl")
-program.addCommand(new CollectionCommand('collection'))
+program.addCommand(new CollectionCommand("collection"))
 // instagram-dl account
 
 program.parse()
