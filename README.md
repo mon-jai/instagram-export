@@ -1,2 +1,2 @@
-# instagram-download-cli
+# instagram-dl-cli
  
