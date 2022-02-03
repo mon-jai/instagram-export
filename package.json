@@ -4,8 +4,7 @@
   "description": "TODO",
   "main": "bin/index.js",
   "scripts": {
-    "build": "tsc --verbose",
-    "prepublish": "prettier --write . && tsc --declaration"
+    "prepare": "prettier --write . && tsc --declaration"
   },
   "repository": {
     "type": "git",
