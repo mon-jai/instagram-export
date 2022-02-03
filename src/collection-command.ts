@@ -12,6 +12,8 @@ import puppeteer from "puppeteer"
 import callbackRead from "read"
 import type { ReadonlyDeep } from "type-fest"
 
+import { KEYTAR_SERVICE_NAME } from "./constants.js"
+
 const read = promisify(callbackRead)
 
 type Location = {
@@ -65,7 +67,6 @@ enum CollectionError {
   PASSWORD_NOT_FOUND,
 }
 
-const KEYTAR_SERVICE_NAME = "instagram-dl"
 const COLLECTION_DATA_FILE = join(process.cwd(), "data.json")
 
 // Utility functions
