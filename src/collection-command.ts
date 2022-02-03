@@ -10,6 +10,7 @@ import keytar from "keytar"
 import { last, pick, pickBy, random } from "lodash-es"
 import puppeteer from "puppeteer"
 import callbackRead from "read"
+import type { ReadonlyDeep } from "type-fest"
 
 const read = promisify(callbackRead)
 
@@ -29,7 +30,8 @@ type Video = Image & { video_versions: [{ url: string }] } // All videos contain
 type Carousel = { carousel_media: (Image | Video)[] }
 type UndocumentedProperties = { [Key: string]: any }
 
-type Post = {
+// The following types are not meant to be altered within the lifecycle of the script
+type Post = ReadonlyDeep<{
   pk: string
   id: string
   media_type: number
@@ -37,20 +39,23 @@ type Post = {
   location?: Location
   user: User
   caption?: Caption
-}
-type RawPost = Omit<Post, "location" | "user" | "caption"> &
-  (Image | Video | Carousel) & {
+}>
+type RawPost = ReadonlyDeep<
+  Omit<Post, "location" | "user" | "caption"> & {
     location?: Location & UndocumentedProperties
     user: User & UndocumentedProperties
     caption: (Caption & UndocumentedProperties) | null
-  }
-type MediaSource = { code: string } & (
-  | { type: "image"; url: string }
-  | { type: "video"; url: string }
-  | { type: "carousel"; urls: string[] }
-)
-type InstagramResponse = { items: [{ media: RawPost }] }
-type DataStore = { url: string; username: string; download_media: boolean; posts: Post[] }
+  } & (Image | Video | Carousel)
+>
+type MediaSource = ReadonlyDeep<
+  { code: string } & (
+    | { type: "image"; url: string }
+    | { type: "video"; url: string }
+    | { type: "carousel"; urls: string[] }
+  )
+>
+type InstagramResponse = ReadonlyDeep<{ items: [{ media: RawPost }] }>
+type DataStore = ReadonlyDeep<{ url: string; username: string; download_media: boolean; posts: Post[] }>
 
 enum CollectionError {
   NOT_INITIALIZED,
@@ -76,12 +81,12 @@ function replaceLine(message: string) {
 }
 
 function isValidYesNoOption(userinput: string): userinput is "Y" | "N" {
-  return userinput === "Y" || userinput === "N"
+  return userinput == "Y" || userinput == "N"
 }
 
 // Casting functions
 
-function postFrom(rawPost: Readonly<RawPost>): Post {
+function postFrom(rawPost: RawPost): Post {
   const { pk, id, media_type, code, location, user, caption } = rawPost
   const post = {
     pk,
@@ -95,10 +100,10 @@ function postFrom(rawPost: Readonly<RawPost>): Post {
 
   // For value equales to undefined (location) or null (caption), pick returns a empty object
   // We remove those empty object from output
-  return pickBy(post, value => typeof value !== "object" || Object.keys(value).length !== 0) as Post
+  return pickBy(post, value => typeof value != "object" || Object.keys(value).length != 0) as Post
 }
 
-function urlFrom(media: Readonly<Image | Video>) {
+function urlFrom(media: ReadonlyDeep<Image | Video>) {
   if ("video_versions" in media) {
     return media.video_versions[0].url
   } else {
@@ -106,7 +111,7 @@ function urlFrom(media: Readonly<Image | Video>) {
   }
 }
 
-function mediaSourceFrom(rawPost: Readonly<RawPost>): MediaSource {
+function mediaSourceFrom(rawPost: RawPost): MediaSource {
   if ("image_versions2" in rawPost) {
     return {
       code: rawPost.code,
@@ -123,7 +128,7 @@ function mediaSourceFrom(rawPost: Readonly<RawPost>): MediaSource {
   }
 }
 
-function rawPostsFrom(responses: Readonly<InstagramResponse[]>) {
+function rawPostsFrom(responses: ReadonlyDeep<InstagramResponse[]>) {
   // Order of responses at the begining: [{ items: [12, 11, 10, 9] }, { items: [8, 7, 6, 5] }, { items: [4, 3, 2, 1] }]
   return Array.from(responses)
     .reverse() // [{ items: [4, 3, 2, 1] }, { items: [8, 7, 6, 5] }, { items: [12, 11, 10, 9] }]
@@ -135,7 +140,7 @@ function fullCommandNameFrom(command: Readonly<Command>) {
   let commandName = ""
   let currentCommand: Command | null = command
 
-  while (currentCommand !== null) {
+  while (currentCommand != null) {
     commandName = `${currentCommand.name()} ${commandName}`
     currentCommand = currentCommand.parent
   }
@@ -148,15 +153,15 @@ function fullCommandNameFrom(command: Readonly<Command>) {
 async function getNewPostsFromInstagram(
   url: string,
   auth: { username: string; password: string },
-  savedPosts: Readonly<Post[]>
+  savedPosts: ReadonlyDeep<Post[]>
 ) {
   let browser: puppeteer.Browser
-  return new Promise<RawPost[]>(async (resolve, reject) => {
+  return new Promise<ReadonlyDeep<RawPost[]>>(async (resolve, reject) => {
     browser = await puppeteer.launch()
     const page = await browser.newPage()
 
     const responses: InstagramResponse[] = []
-    const firstRun = savedPosts.length === 0
+    const firstRun = savedPosts.length == 0
     const lastSavedPosts: Post = last(savedPosts) as Post
 
     printLine("Getting posts from Instagram...")
@@ -177,13 +182,13 @@ async function getNewPostsFromInstagram(
       responses.push(json)
 
       // First response
-      if (responses.length === 1 && !firstRun && last(rawPostsFrom(responses))?.pk === lastSavedPosts.pk) {
+      if (responses.length == 1 && !firstRun && last(rawPostsFrom(responses))?.pk == lastSavedPosts.pk) {
         reject(CollectionError["NO_NEW_PHOTO"])
       }
 
-      if (!firstRun && json.items.find(Post => Post.media.pk === lastSavedPosts.pk)) {
+      if (!firstRun && json.items.find(Post => Post.media.pk == lastSavedPosts.pk)) {
         const rawPosts = rawPostsFrom(responses)
-        const indexOfNewElements = rawPosts.findIndex(rawPost => rawPost.pk === lastSavedPosts.pk) + 1
+        const indexOfNewElements = rawPosts.findIndex(rawPost => rawPost.pk == lastSavedPosts.pk) + 1
 
         resolve(rawPosts.slice(indexOfNewElements))
       }
@@ -205,7 +210,7 @@ async function getNewPostsFromInstagram(
     // if the "finally" cleanup function being executed (promise is either resolved or rejected) before all the statements below are executed
     try {
       // "Save Your Login Info?" page
-      await page.waitForFunction('window.location.pathname === "/accounts/onetap/"')
+      await page.waitForFunction('window.location.pathname == "/accounts/onetap/"')
       await page.evaluate(`document.querySelector('button[type="button"]')?.click()`)
 
       // Navigate to collection
@@ -218,9 +223,9 @@ async function getNewPostsFromInstagram(
       // Wait until all posts are loaded (hence the spinner is removed from DOM)
       // There are two spinner elements that will be mounted to DOM
       // both of them are indirect children of `main` but only the second one get mounted is a indirect child of `article`
-      await page.waitForFunction(`document.querySelector('article [data-visualcompletion="loading-state"]') === null`)
+      await page.waitForFunction(`document.querySelector('article [data-visualcompletion="loading-state"]') == null`)
     } catch (error: any) {
-      if (error.name !== "ProtocolError") throw error
+      if (error.name != "ProtocolError") throw error
     }
 
     // If we didn't find the last saved post from the previous run / this is the first run
@@ -232,7 +237,7 @@ async function getNewPostsFromInstagram(
       for (const savedPost of Array.from(savedPosts).reverse()) {
         const indexOfNewElements = rawPosts.findIndex(rawPost => rawPost.pk === savedPost.pk)
 
-        if (indexOfNewElements !== -1) {
+        if (indexOfNewElements != -1) {
           rawPosts = rawPosts.slice(indexOfNewElements)
           break
         }
@@ -246,19 +251,19 @@ async function getNewPostsFromInstagram(
   })
 }
 
-async function downloadMedias(mediaSources: Readonly<MediaSource[]>) {
+async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) {
   let downloadedCount = 0
 
   const downloadQueue = queue(async (media: MediaSource) => {
-    if (media.type === "image" || media.type === "video") {
-      const filename = `${media.code}.${media.type === "image" ? "jpg" : "mp4"}`
+    if (media.type == "image" || media.type == "video") {
+      const filename = `${media.code}.${media.type == "image" ? "jpg" : "mp4"}`
       await download(media.url, join(process.cwd(), "photo"), { filename })
     } else {
       await Promise.all(media.urls.map(url => download(url, join(process.cwd(), "photo", `${media.code}`))))
     }
 
     downloadedCount++
-    if (downloadedCount !== mediaSources.length) {
+    if (downloadedCount != mediaSources.length) {
       replaceLine(`Fetching images... ${downloadedCount}/${mediaSources.length}`)
     } else {
       replaceLine("Fetching images... Done\n")
@@ -271,7 +276,7 @@ async function downloadMedias(mediaSources: Readonly<MediaSource[]>) {
 
   await downloadQueue.drain()
 
-  if (downloadedCount !== mediaSources.length) {
+  if (downloadedCount != mediaSources.length) {
     console.log(`${mediaSources.length - downloadedCount} Posts failed to download`)
   }
 }
@@ -294,7 +299,7 @@ class CollectionCommand extends Command {
           download_media = (await read({ prompt: "Download media [Y/n]?", default: "Y" })).toUpperCase()
         } while (!isValidYesNoOption(download_media))
 
-        const data: DataStore = { url, username, download_media: download_media === "Y", posts: [] }
+        const data: DataStore = { url, username, download_media: download_media == "Y", posts: [] }
 
         keytar.setPassword(KEYTAR_SERVICE_NAME, username, password)
         await writeFile(COLLECTION_DATA_FILE, JSON.stringify(data, null, 2))
@@ -309,13 +314,13 @@ class CollectionCommand extends Command {
           posts: savedPosts,
         }: Partial<DataStore> = JSON.parse(await readFile(COLLECTION_DATA_FILE, "utf8"))
 
-        if (url === undefined || username === undefined || download_media === undefined || savedPosts === undefined) {
+        if (url == undefined || username == undefined || download_media == undefined || savedPosts == undefined) {
           throw CollectionError["NOT_INITIALIZED"]
         }
 
         const password = await keytar.getPassword(KEYTAR_SERVICE_NAME, username)
 
-        if (password === null) {
+        if (password == null) {
           throw CollectionError["PASSWORD_NOT_FOUND"]
         }
 
@@ -332,9 +337,9 @@ class CollectionCommand extends Command {
 
         console.log(`Time taken: ${(Date.now() - startTime) / 1000} seconds`)
       } catch (error: any) {
-        if (error === CollectionError["NO_NEW_PHOTO"]) {
+        if (error == CollectionError["NO_NEW_PHOTO"]) {
           console.log("No new photo found")
-        } else if (error === CollectionError["NOT_INITIALIZED"] || error?.code === "ENOENT") {
+        } else if (error == CollectionError["NOT_INITIALIZED"] || error?.code == "ENOENT") {
           const initCommand = fullCommandNameFrom(command) + " init"
           console.error(`Current directory not initialized, use ${initCommand} before running this command\n`)
           this.help({ error: true })
