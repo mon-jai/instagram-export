@@ -43,8 +43,7 @@
   },
   "type": "module",
   "bin": {
-    "instagram-dl": "dist/index.js",
-    "instagram-collection-dl": "dist/instagram-collection-dl.js"
+    "instagram-dl": "dist/index.js"
   },
   "types": "dist/index.d.ts"
 }
