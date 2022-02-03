@@ -2,7 +2,7 @@
   "name": "instagram-dl",
   "version": "0.0.5",
   "description": "TODO",
-  "main": "dist/index.js",
+  "main": "bin/index.js",
   "scripts": {
     "build": "tsc --verbose",
     "prepublish": "prettier --write . && tsc --declaration"
@@ -43,7 +43,7 @@
   },
   "type": "module",
   "bin": {
-    "instagram-dl": "dist/index.js"
+    "instagram-dl": "bin/index.js"
   },
-  "types": "dist/index.d.ts"
+  "types": "bin/index.d.ts"
 }
