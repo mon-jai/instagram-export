@@ -4,7 +4,7 @@
   "description": "TODO",
   "main": "bin/index.js",
   "scripts": {
-    "prepare": "prettier --write . && tsc --declaration"
+    "prepare": "prettier --write . && rm -rf bin && tsc --declaration"
   },
   "repository": {
     "type": "git",
