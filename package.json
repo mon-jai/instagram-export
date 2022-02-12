@@ -1,6 +1,6 @@
 {
   "name": "instagram-dl",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TODO",
   "main": "bin/index.js",
   "scripts": {
