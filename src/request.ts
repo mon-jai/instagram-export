@@ -112,7 +112,7 @@ async function withPage<T extends Record<string, any>>(
   callback: (page: Page) => Promise<T>,
   complete?: () => void | Promise<void>
 ): Promise<T> {
-  const browser = await puppeteer.launch()
+  const browser = await puppeteer.launch({ headless: false })
   const page = await browser.newPage()
 
   page.setDefaultTimeout(0)
@@ -122,7 +122,7 @@ async function withPage<T extends Record<string, any>>(
       // Cleanup
       .finally(async () => {
         if (complete != undefined) await complete()
-        await browser.close()
+        // await browser.close()
       })
   )
 }
@@ -182,15 +182,22 @@ export async function getPost(url: string): Promise<RawPost> {
   if (typeof code != "string") throw ""
 
   return withPage(async page => {
-    await page.setJavaScriptEnabled(false)
+    await page.setUserAgent('Googlebot/2.1 (+http://www.google.com/bot.html)')
+    // await page.setJavaScriptEnabled(false)
     await page.goto(url)
-    const rawPost = await page.$$eval("script", scripts => {
-      const scriptTagInnerText = (scripts as HTMLScriptElement[]).find(
-        script => script.innerText.includes("window.__additionalDataLoaded") && script.innerText.includes(code)
-      )?.innerText as string
-      return JSON.parse(scriptTagInnerText.match(/(\{.*\} *)/)?.[0] ?? "{}")
-    })
-    return rawPost
+
+    return await page.$$eval(
+      "script",
+      (scripts, code) => {
+        const scriptTag = (scripts as HTMLScriptElement[]).find(
+          script =>
+            script.innerText.includes("window.__additionalDataLoaded") && script.innerText.includes(code as string)
+        )
+        console.log(scripts)
+        return JSON.parse(scriptTag?.innerHTML.match(/(\{.*\} *)/)?.[0] ?? "{}")
+      },
+      code
+    )
   })
 }
 
