@@ -108,56 +108,90 @@ async function captureAPIResponses(page: Page, collectionUrl: string, lastSavedP
   })
 }
 
+async function withPage<T extends Record<string, any>>(
+  callback: (page: Page) => Promise<T>,
+  complete?: () => void | Promise<void>
+): Promise<T> {
+  const browser = await puppeteer.launch()
+  const page = await browser.newPage()
+
+  page.setDefaultTimeout(0)
+
+  return (
+    new Promise<T>(async resolve => resolve(await callback(page)))
+      // Cleanup
+      .finally(async () => {
+        if (complete != undefined) await complete()
+        await browser.close()
+      })
+  )
+}
+
+// Get new posts in a collection
 export async function getNewPosts(
   collectionUrl: string,
   auth: { username: string; password: string },
   postsSavedFromLastRun: ReadonlyDeep<Post[]>
 ): Promise<ReadonlyDeep<RawPost[]>> {
-  const browser = await puppeteer.launch()
-  const page = await browser.newPage()
+  return withPage(
+    async page => {
+      // null if this is the first run
+      const lastSavedPostPk = last(postsSavedFromLastRun)?.pk ?? null
 
-  try {
-    page.setDefaultTimeout(0)
-    // null if this is the first run
-    const lastSavedPostPk = last(postsSavedFromLastRun)?.pk ?? null
+      printLine("Getting posts from Instagram...")
 
-    printLine("Getting posts from Instagram...")
+      await login(page, auth)
 
-    await login(page, auth)
+      const responses = await captureAPIResponses(page, collectionUrl, lastSavedPostPk)
+      const rawPosts = rawPostsFrom(responses)
 
-    const responses = await captureAPIResponses(page, collectionUrl, lastSavedPostPk)
-    const rawPosts = rawPostsFrom(responses)
+      if (lastSavedPostPk == null) {
+        // This is the first run
+        return rawPosts
+      }
 
-    if (lastSavedPostPk == null) {
-      // This is the first run
-      return rawPosts
-    }
+      let indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == lastSavedPostPk)
 
-    let indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == lastSavedPostPk)
+      if (indexOfLastSavedPost == -1) {
+        // We didn't find the last post saved in last run
+        // Default value, return the whole rawPosts array (0 to rawPosts.length -1)
+        // if we can't find any posts from last run
+        indexOfLastSavedPost = 0
 
-    if (indexOfLastSavedPost == -1) {
-      // We didn't find the last post saved in last run
-      // Default value, return the whole rawPosts array (0 to rawPosts.length -1)
-      // if we can't find any posts from last run
-      indexOfLastSavedPost = 0
+        // Look for posts saved in last run, one by one, from bottom to top
+        for (const post of Array.from(postsSavedFromLastRun).reverse()) {
+          const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
 
-      // Look for posts saved in last run, one by one, from bottom to top
-      for (const post of Array.from(postsSavedFromLastRun).reverse()) {
-        const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
-
-        if (indexOfPost != -1) {
-          indexOfLastSavedPost = indexOfPost
-          break
+          if (indexOfPost != -1) {
+            indexOfLastSavedPost = indexOfPost
+            break
+          }
         }
       }
-    }
 
-    return rawPosts.slice(indexOfLastSavedPost + 1)
-  } finally {
-    // Cleanup
-    await browser.close()
-    replaceLine("Getting posts from Instagram... Done\n")
-  }
+      return rawPosts.slice(indexOfLastSavedPost + 1)
+    },
+    () => replaceLine("Getting posts from Instagram... Done\n")
+  )
+}
+
+// Get post data of a post
+export async function getPost(url: string): Promise<RawPost> {
+  const code = new URL(url).pathname.match(/^\/p\/(?<code>[A-z0-9]+)\/?$/)?.groups?.code
+
+  if (typeof code != "string") throw ""
+
+  return withPage(async page => {
+    await page.setJavaScriptEnabled(false)
+    await page.goto(url)
+    const rawPost = await page.$$eval("script", scripts => {
+      const scriptTagInnerText = (scripts as HTMLScriptElement[]).find(
+        script => script.innerText.includes("window.__additionalDataLoaded") && script.innerText.includes(code)
+      )?.innerText as string
+      return JSON.parse(scriptTagInnerText.match(/(\{.*\} *)/)?.[0] ?? "{}")
+    })
+    return rawPost
+  })
 }
 
 export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) {
