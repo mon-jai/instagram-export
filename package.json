@@ -1,5 +1,5 @@
 {
-  "name": "instagram-dl",
+  "name": "instagram-export",
   "version": "0.2.0",
   "description": "TODO",
   "main": "bin/index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mon-jai/instagram-dl.git"
+    "url": "git+https://github.com/mon-jai/instagram-export.git"
   },
   "keywords": [
     "instagram",
@@ -17,9 +17,9 @@
   "author": "Loh Ka Hong",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mon-jai/instagram-dl/issues"
+    "url": "https://github.com/mon-jai/instagram-export/issues"
   },
-  "homepage": "https://github.com/mon-jai/instagram-dl-cli#readme",
+  "homepage": "https://github.com/mon-jai/instagram-export-cli#readme",
   "dependencies": {
     "async": "^3.2.3",
     "commander": "^9.0.0",
@@ -42,7 +42,7 @@
   },
   "type": "module",
   "bin": {
-    "instagram-dl": "bin/index.js"
+    "instagram-export": "bin/index.js"
   },
   "types": "bin/index.d.ts"
 }

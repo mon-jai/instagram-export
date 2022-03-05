@@ -8,8 +8,7 @@ const program = new Command()
 
 program.name(COMMAND_NAME)
 program.addCommand(collectionCommand)
-// instagram-dl post
-// instagram-dl user
-// instagram-dl [url]
+// instagram-export profile posts
+// instagram-export profile highlights
 
 program.parse()
