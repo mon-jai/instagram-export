@@ -108,6 +108,31 @@ async function captureAPIResponses(page: Page, collectionUrl: string, lastSavedP
   })
 }
 
+function getFirstNewPostIndex(
+  rawPosts: RawPost[],
+  postsSavedFromLastRun: ReadonlyDeep<Post[]>,
+  lastSavedPostPk: string | null
+) {
+  // This is the first run
+  if (lastSavedPostPk == null) return 0
+
+  const indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == lastSavedPostPk)
+
+  if (indexOfLastSavedPost != -1) {
+    return indexOfLastSavedPost + 1
+  } else {
+    // Look for posts saved in last run, one by one, from bottom to top
+    for (const post of Array.from(postsSavedFromLastRun).reverse()) {
+      const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
+      if (indexOfPost != -1) return indexOfPost + 1
+    }
+
+    // We can't find any post from last run
+    // The whole rawPosts array will be saved (from 0 to rawPosts.length -1)
+    return 0
+  }
+}
+
 export async function getNewPosts(
   collectionUrl: string,
   auth: { username: string; password: string },
@@ -126,33 +151,11 @@ export async function getNewPosts(
     await login(page, auth)
 
     const responses = await captureAPIResponses(page, collectionUrl, lastSavedPostPk)
+
     const rawPosts = rawPostsFrom(responses)
+    const firstNewPostIndex = getFirstNewPostIndex(rawPosts, postsSavedFromLastRun, lastSavedPostPk)
 
-    if (lastSavedPostPk == null) {
-      // This is the first run
-      return rawPosts
-    }
-
-    let indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == lastSavedPostPk)
-
-    if (indexOfLastSavedPost == -1) {
-      // We didn't find the last post saved in last run
-      // Default value, return the whole rawPosts array (0 to rawPosts.length -1)
-      // if we can't find any posts from last run
-      indexOfLastSavedPost = 0
-
-      // Look for posts saved in last run, one by one, from bottom to top
-      for (const post of Array.from(postsSavedFromLastRun).reverse()) {
-        const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
-
-        if (indexOfPost != -1) {
-          indexOfLastSavedPost = indexOfPost
-          break
-        }
-      }
-    }
-
-    return rawPosts.slice(indexOfLastSavedPost + 1)
+    return rawPosts.slice(firstNewPostIndex)
   } finally {
     // Cleanup
     await browser.close()
