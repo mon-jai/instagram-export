@@ -45,6 +45,11 @@ async function login(page: Page, auth: { username: string; password: string }) {
   }
 }
 
+async function logout(page: Page) {
+  await page.click('nav span[role="link"]')
+  await page.click('nav hr + [role="button"]')
+}
+
 async function captureAPIResponses(page: Page, collectionUrl: string, lastSavedPostPk: string | null) {
   return new Promise<InstagramResponse[]>(async (resolve, reject) => {
     const responses: InstagramResponse[] = []
@@ -158,6 +163,7 @@ export async function getNewPosts(
     return rawPosts.slice(firstNewPostIndex)
   } finally {
     // Cleanup
+    await logout(page)
     await browser.close()
     replaceLine("Getting posts from Instagram... Done\n")
   }
