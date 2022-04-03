@@ -68,6 +68,7 @@ async function captureAPIResponses(page: Page, collectionUrl: string, lastSavedP
 
         if (json == null) return
         responses.push(json)
+        replaceLine(`Getting posts from Instagram... (page ${responses.length})`)
 
         // If this is the first incoming response,
         // and the first post in the response is the last post saved in last run
