@@ -146,6 +146,7 @@ export async function getNewPosts(
 ): Promise<ReadonlyDeep<RawPost[]>> {
   const browser = await puppeteer.launch()
   const page = await browser.newPage()
+  await page.setUserAgent((await browser.userAgent()).replace("HeadlessChrome", "Chrome"))
 
   try {
     page.setDefaultTimeout(0)
