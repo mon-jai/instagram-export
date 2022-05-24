@@ -2,12 +2,17 @@ import { promisify } from "util"
 
 import { Command } from "commander"
 import { isEmpty, pick, pickBy } from "lodash-es"
+import { random } from "lodash-es"
 import callbackRead from "read"
 import { ReadonlyDeep } from "type-fest"
 
 import { InstagramResponse, Media, MediaSource, Post, RawPost } from "./types.js"
 
 // Utility functions
+
+export function randomDelay() {
+  return 100 + random(0, 150)
+}
 
 export function printLine(message: string) {
   process.stdout.write(message)
@@ -24,9 +29,11 @@ export function isValidYesNoOption(userInput: string): userInput is "Y" | "N" {
   return userInput == "Y" || userInput == "N"
 }
 
+export const read = promisify(callbackRead)
+
 // Casting functions used within this file
 
-function urlFrom(media: Media) {
+function getUrl(media: Media) {
   if ("video_versions" in media) {
     return media.video_versions[0].url
   } else {
@@ -58,21 +65,21 @@ export function mediaSourceFrom(rawPost: RawPost): MediaSource {
     return {
       code: rawPost.code,
       type: "video_versions" in rawPost ? "video" : "image",
-      url: urlFrom(rawPost),
+      url: getUrl(rawPost),
     }
   } else {
     const { code, carousel_media } = rawPost
     return {
       code: code,
       type: "carousel",
-      urls: carousel_media.map(media => urlFrom(media)),
+      urls: carousel_media.map(media => getUrl(media)),
     }
   }
 }
 
-export function rawPostsFrom(responses: ReadonlyDeep<InstagramResponse[]>) {
+export function rawPostsFrom(responses: ReadonlyDeep<InstagramResponse>[]) {
   // Order of responses at the beginning: [{ items: [12, 11, 10, 9] }, { items: [8, 7, 6, 5] }, { items: [4, 3, 2, 1] }]
-  return Array.from(responses)
+  return responses
     .reverse() // [{ items: [4, 3, 2, 1] }, { items: [8, 7, 6, 5] }, { items: [12, 11, 10, 9] }]
     .map(result => result.items.map(item => item.media).reverse()) // [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
     .flat() // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -89,5 +96,3 @@ export function fullCommandNameFrom(command: Readonly<Command>) {
 
   return commandName.trim()
 }
-
-export const read = promisify(callbackRead)

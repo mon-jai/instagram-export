@@ -3,18 +3,18 @@ import { URL } from "url"
 
 import { queue } from "async"
 import download from "download"
-import { last, random } from "lodash-es"
+import { last } from "lodash-es"
 import puppeteer, { Page } from "puppeteer"
 import { ReadonlyDeep } from "type-fest"
 
 import { Errors, InstagramResponse, MediaSource, Post, RawPost } from "./types.js"
-import { printLine, rawPostsFrom, read, replaceLine } from "./utils.js"
+import { printLine, randomDelay, rawPostsFrom, read, replaceLine } from "./utils.js"
 
 async function login(page: Page, auth: { username: string; password: string }) {
   // Navigate to login page
   await page.goto("https://www.instagram.com/accounts/login/", { waitUntil: "networkidle0" })
-  await page.type('input[name="username"]', auth.username, { delay: 100 + random(0, 150) })
-  await page.type('input[name="password"]', auth.password, { delay: 100 + random(0, 150) })
+  await page.type('input[name="username"]', auth.username, { delay: randomDelay() })
+  await page.type('input[name="password"]', auth.password, { delay: randomDelay() })
   await Promise.all([
     page.waitForNavigation(),
     page.evaluate(() => (document.querySelector('button[type="submit"]') as HTMLButtonElement).click()),
@@ -40,7 +40,7 @@ async function login(page: Page, auth: { username: string; password: string }) {
         ?.replace(/.$/, ": "),
     })
 
-    await page.type('input[name="verificationCode"]', securityCode, { delay: 100 + random(0, 150) })
+    await page.type('input[name="verificationCode"]', securityCode, { delay: randomDelay() })
     await Promise.all([
       page.waitForNavigation(),
       page.evaluate(() => (document.querySelector("form > div:nth-child(2) > button") as HTMLButtonElement).click()),
@@ -59,7 +59,11 @@ async function logout(page: Page) {
   await page.click('nav hr + [role="button"]')
 }
 
-async function captureAPIResponses(page: Page, collectionUrl: string, lastSavedPostPk: string | null) {
+async function extractPostsFromPage(
+  page: Page,
+  collectionUrl: string,
+  lastSavedPostPk: string | null
+): Promise<RawPost[]> {
   return new Promise<InstagramResponse[]>(async (resolve, reject) => {
     const responses: InstagramResponse[] = []
 
@@ -86,7 +90,7 @@ async function captureAPIResponses(page: Page, collectionUrl: string, lastSavedP
           lastSavedPostPk != null &&
           (last(rawPostsFrom(responses)) as Post).pk == lastSavedPostPk
         ) {
-          reject(Errors["NO_NEW_PHOTO"])
+          reject(Errors["NO_NEW_POST"])
         }
 
         // The promise exits here
@@ -120,56 +124,48 @@ async function captureAPIResponses(page: Page, collectionUrl: string, lastSavedP
     } catch (error: any) {
       if (error.name != "ProtocolError") throw error
     }
-  })
+  }).then(responses => rawPostsFrom(responses))
 }
 
-function getFirstNewPostIndex(
-  rawPosts: RawPost[],
-  postsSavedFromLastRun: ReadonlyDeep<Post[]>,
-  lastSavedPostPk: string | null
-) {
+function findFirstNewPostIndex(rawPosts: RawPost[], postsSavedFromLastRun: ReadonlyDeep<Post[]>) {
   // This is the first run
-  if (lastSavedPostPk == null) return 0
+  if (postsSavedFromLastRun.length == 0) return 0
 
-  const indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == lastSavedPostPk)
+  const indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == last(postsSavedFromLastRun)?.pk)
 
-  if (indexOfLastSavedPost != -1) {
-    return indexOfLastSavedPost + 1
-  } else {
-    // Look for posts saved in last run, one by one, from bottom to top
-    for (const post of Array.from(postsSavedFromLastRun).reverse()) {
-      const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
-      if (indexOfPost != -1) return indexOfPost + 1
-    }
+  // We found the last saved post in rawPosts
+  if (indexOfLastSavedPost != -1) return indexOfLastSavedPost + 1
 
-    // We can't find any post from last run
-    // The whole rawPosts array will be saved (from 0 to rawPosts.length -1)
-    return 0
+  // We couldn't find the last saved post
+  // Look for posts saved in last run, one by one, from bottom to top
+  for (const post of Array.from(postsSavedFromLastRun).reverse()) {
+    const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
+    if (indexOfPost != -1) return indexOfPost + 1
   }
+
+  // We couldn't find any saved post from last run
+  // The whole rawPosts array will be saved (from 0 to rawPosts.length -1)
+  return 0
 }
 
 export async function getNewPosts(
   collectionUrl: string,
   auth: { username: string; password: string },
   postsSavedFromLastRun: ReadonlyDeep<Post[]>
-): Promise<ReadonlyDeep<RawPost[]>> {
+): Promise<RawPost[]> {
   const browser = await puppeteer.launch()
   const page = await browser.newPage()
   await page.setUserAgent((await browser.userAgent()).replace("HeadlessChrome", "Chrome"))
 
   try {
     page.setDefaultTimeout(0)
-    // null if this is the first run
-    const lastSavedPostPk = last(postsSavedFromLastRun)?.pk ?? null
 
     printLine("Getting posts from Instagram...")
 
     await login(page, auth)
 
-    const responses = await captureAPIResponses(page, collectionUrl, lastSavedPostPk)
-
-    const rawPosts = rawPostsFrom(responses)
-    const firstNewPostIndex = getFirstNewPostIndex(rawPosts, postsSavedFromLastRun, lastSavedPostPk)
+    const rawPosts = await extractPostsFromPage(page, collectionUrl, last(postsSavedFromLastRun)?.pk ?? null)
+    const firstNewPostIndex = findFirstNewPostIndex(rawPosts, postsSavedFromLastRun)
 
     return rawPosts.slice(firstNewPostIndex)
   } finally {
@@ -183,7 +179,7 @@ export async function getNewPosts(
 export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) {
   let downloadedCount = 0
 
-  const downloadQueue = queue(async (media: MediaSource) => {
+  const downloadQueue = queue<MediaSource>(async media => {
     if (media.type == "image" || media.type == "video") {
       const filename = `${media.code}.${media.type == "image" ? "jpg" : "mp4"}`
       await download(media.url, join(process.cwd(), "photo"), { filename })
@@ -192,15 +188,12 @@ export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) 
     }
 
     downloadedCount++
-    if (downloadedCount != mediaSources.length) {
-      replaceLine(`Fetching images... ${downloadedCount}/${mediaSources.length}`)
-    } else {
-      replaceLine("Fetching images... Done\n")
-    }
+    replaceLine(`Fetching images... ${downloadedCount}/${mediaSources.length}`)
   }, 10)
 
   downloadQueue.push(Array.from(mediaSources))
   await downloadQueue.drain()
+  replaceLine("Fetching images... Done\n")
 
   if (downloadedCount != mediaSources.length) {
     console.log(`${mediaSources.length - downloadedCount} Posts failed to download`)

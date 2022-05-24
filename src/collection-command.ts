@@ -1,17 +1,12 @@
 import { readFile, writeFile } from "fs/promises"
-import { join } from "path"
 
 import { Command } from "commander"
 import keytar from "keytar"
 
-import { KEYTAR_SERVICE_NAME } from "./constants.js"
+import { DATA_FILE_PATH, KEYTAR_SERVICE_NAME } from "./constants.js"
 import { downloadMedias, getNewPosts } from "./request.js"
 import { DataStore, Errors } from "./types.js"
 import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, read } from "./utils.js"
-
-// Constants
-
-const DATA_FILE_PATH = join(process.cwd(), "data.json")
 
 const collectionCommand = new Command("collection")
 
@@ -26,7 +21,7 @@ collectionCommand
     let download_media
 
     do {
-      download_media = (await read({ prompt: "Download media [Y/n]?", default: "Y" })).toUpperCase()
+      download_media = (await read({ prompt: "Download media [Y/n]?", default: "Y" })).toUpperCase().trim()
     } while (!isValidYesNoOption(download_media))
 
     const data: DataStore = { url, username, download_media: download_media == "Y", posts: [] }
@@ -71,11 +66,12 @@ collectionCommand.action(async (_, command: Command) => {
 
     console.log(`${newPosts.length} new posts found`)
     if (download_media) await downloadMedias(newPosts.map(mediaSourceFrom))
+
     await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
 
     console.log(`Time taken: ${(Date.now() - startTime) / 1000} seconds`)
   } catch (error: any) {
-    if (error == Errors["NO_NEW_PHOTO"]) {
+    if (error == Errors["NO_NEW_POST"]) {
       console.log("No new post found")
     } else if (error == Errors["NOT_INITIALIZED"] || error?.code == "ENOENT") {
       const initCommand = fullCommandNameFrom(command) + " init"

@@ -45,7 +45,7 @@ export type RawPost = ReadonlyDeep<
 // The raw data format returned by Instagram
 export type InstagramResponse = ReadonlyDeep<{ items: [{ media: RawPost }] }>
 
-// Data structure used in urlFrom()
+// Data structure used in getUrl()
 export type Media = ReadonlyDeep<Image | Video>
 // The structure of the output data file
 export type DataStore = ReadonlyDeep<{ url: string; username: string; download_media: boolean; posts: Post[] }>
@@ -61,7 +61,7 @@ export type MediaSource = ReadonlyDeep<
 // All the errors thrown by us
 export enum Errors {
   NOT_INITIALIZED,
-  NO_NEW_PHOTO,
+  NO_NEW_POST,
   NO_OVERLAP,
   RATE_LIMIT_REACHED,
   PASSWORD_NOT_FOUND,
