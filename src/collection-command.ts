@@ -1,17 +1,13 @@
 import { readFile, writeFile } from "fs/promises"
 import { join } from "path"
-import { promisify } from "util"
 
 import { Command } from "commander"
 import keytar from "keytar"
-import callbackRead from "read"
 
 import { KEYTAR_SERVICE_NAME } from "./constants.js"
 import { downloadMedias, getNewPosts } from "./request.js"
 import { DataStore, Errors } from "./types.js"
-import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom } from "./utils.js"
-
-const read = promisify(callbackRead)
+import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, read } from "./utils.js"
 
 // Constants
 

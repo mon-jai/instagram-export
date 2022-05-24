@@ -8,14 +8,18 @@ import puppeteer, { Page } from "puppeteer"
 import { ReadonlyDeep } from "type-fest"
 
 import { Errors, InstagramResponse, MediaSource, Post, RawPost } from "./types.js"
-import { printLine, rawPostsFrom, replaceLine } from "./utils.js"
+import { printLine, rawPostsFrom, read, replaceLine } from "./utils.js"
 
 async function login(page: Page, auth: { username: string; password: string }) {
   // Navigate to login page
   await page.goto("https://www.instagram.com/accounts/login/", { waitUntil: "networkidle0" })
   await page.type('input[name="username"]', auth.username, { delay: 100 + random(0, 150) })
   await page.type('input[name="password"]', auth.password, { delay: 100 + random(0, 150) })
-  await page.evaluate(() => (document.querySelector('button[type="submit"]') as HTMLButtonElement).click())
+  await Promise.all([
+    page.waitForNavigation(),
+    page.evaluate(() => (document.querySelector('button[type="submit"]') as HTMLButtonElement).click()),
+  ])
+
   // If Instagram displayed a rate limit message, exit earlier
   // <p aria-atomic="true" data-testid="login-error-message" id="slfErrorAlert" role="alert">Please wait a few minutes before you try again.</p>
   page
@@ -27,19 +31,24 @@ async function login(page: Page, auth: { username: string; password: string }) {
     // thus ProtocolError will be thrown
     .catch(() => {})
 
-  // Skip "Save Your Login Info?" page, if it is displayed
-  const saveLoginInfoPageDisplayed: boolean = await Promise.race([
-    // Skip the check if the page doesn't load after 3 seconds
-    new Promise<boolean>(resolve => setTimeout(() => resolve(false), 3000)),
-    new Promise<boolean>(async resolve => {
-      await page.waitForFunction(() => window.location.pathname == "/accounts/onetap/")
-      resolve(true)
+  // Ask for security code if two-factor authentication is enabled for the account
+  if (new URL(page.url()).pathname == "/accounts/login/two_factor") {
+    const securityCode = await read({
+      prompt: (await (await page.$("#verificationCodeDescription"))?.evaluate(el => el.textContent))
+        ?.trim()
+        ?.replace("we", "Instagram")
+        ?.replace(/.$/, ": "),
     })
-      // Under normal executions, browser will be closed while this promise is still waiting
-      // thus ProtocolError will be thrown
-      .catch(() => false),
-  ])
-  if (saveLoginInfoPageDisplayed) {
+
+    await page.type('input[name="verificationCode"]', securityCode, { delay: 100 + random(0, 150) })
+    await Promise.all([
+      page.waitForNavigation(),
+      page.evaluate(() => (document.querySelector("form > div:nth-child(2) > button") as HTMLButtonElement).click()),
+    ])
+  }
+
+  // Skip "Save Your Login Info?" page, if it is displayed
+  if (new URL(page.url()).pathname == "/accounts/onetap/") {
     // Press "Not Now" button
     await page.evaluate(() => document.querySelector<HTMLElement>('main div > div > button[type="button"]')?.click())
   }

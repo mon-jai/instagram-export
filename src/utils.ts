@@ -1,5 +1,8 @@
+import { promisify } from "util"
+
 import { Command } from "commander"
 import { isEmpty, pick, pickBy } from "lodash-es"
+import callbackRead from "read"
 import { ReadonlyDeep } from "type-fest"
 
 import { InstagramResponse, Media, MediaSource, Post, RawPost } from "./types.js"
@@ -86,3 +89,5 @@ export function fullCommandNameFrom(command: Readonly<Command>) {
 
   return commandName.trim()
 }
+
+export const read = promisify(callbackRead)
