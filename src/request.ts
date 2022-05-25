@@ -124,7 +124,10 @@ async function extractPostsFromPage(
     } catch (error: any) {
       if (error.name != "ProtocolError") throw error
     }
-  }).then(responses => rawPostsFrom(responses))
+  }).then(responses => {
+    replaceLine(`Getting posts from Instagram... Done (${responses.length} pages) \n`)
+    return rawPostsFrom(responses)
+  })
 }
 
 function findFirstNewPostIndex(rawPosts: RawPost[], postsSavedFromLastRun: ReadonlyDeep<Post[]>) {
@@ -160,9 +163,9 @@ export async function getNewPosts(
   try {
     page.setDefaultTimeout(0)
 
-    printLine("Getting posts from Instagram...")
-
+    printLine("Logging in...")
     await login(page, auth)
+    replaceLine("Logging in... Done\n")
 
     const rawPosts = await extractPostsFromPage(page, collectionUrl, last(postsSavedFromLastRun)?.pk ?? null)
     const firstNewPostIndex = findFirstNewPostIndex(rawPosts, postsSavedFromLastRun)
@@ -172,7 +175,6 @@ export async function getNewPosts(
     // Cleanup
     await logout(page)
     await browser.close()
-    replaceLine("Getting posts from Instagram... Done\n")
   }
 }
 
@@ -188,13 +190,13 @@ export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) 
     }
 
     downloadedCount++
-    replaceLine(`Fetching images... ${downloadedCount}/${mediaSources.length}`)
+    replaceLine(`Fetching media... ${downloadedCount}/${mediaSources.length}`)
   }, 10)
 
   downloadQueue.push(Array.from(mediaSources))
   await downloadQueue.drain()
-  replaceLine("Fetching images... Done\n")
 
+  replaceLine("Fetching media... Done\n")
   if (downloadedCount != mediaSources.length) {
     console.log(`${mediaSources.length - downloadedCount} Posts failed to download`)
   }

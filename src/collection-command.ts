@@ -64,18 +64,22 @@ collectionCommand.action(async (_, command: Command) => {
       posts: [...postsSavedFromLastRun, ...newPosts.map(postFrom)],
     }
 
-    console.log(`${newPosts.length} new posts found`)
     if (download_media) await downloadMedias(newPosts.map(mediaSourceFrom))
 
     await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
 
-    console.log(`Time taken: ${(Date.now() - startTime) / 1000} seconds`)
+    console.log(
+      `\nFetched ${newPosts.length} new posts${download_media ? " and media " : " "}` +
+        `in ${(Date.now() - startTime) / 1000} seconds`
+    )
   } catch (error: any) {
     if (error == Errors["NO_NEW_POST"]) {
       console.log("No new post found")
     } else if (error == Errors["NOT_INITIALIZED"] || error?.code == "ENOENT") {
       const initCommand = fullCommandNameFrom(command) + " init"
-      console.error(`Current directory not initialized, use ${initCommand} before running this command\n`)
+      console.error(
+        `Current directory not initialized, make sure to inilize it with \`${initCommand}\` before running this command`
+      )
       collectionCommand.help({ error: true })
     } else {
       console.error(Errors[error] ?? error)
