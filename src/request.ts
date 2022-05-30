@@ -174,7 +174,7 @@ export async function getNewPosts(
     return rawPosts.slice(firstNewPostIndex)
   } finally {
     // Cleanup
-    await logout(page)
+    await logout(page).catch(() => {})
     await browser.close()
   }
 }
