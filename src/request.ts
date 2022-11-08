@@ -34,14 +34,15 @@ async function login(page: Page, auth: { username: string; password: string }) {
 
   // Ask for security code if two-factor authentication is enabled for the account
   if (new URL(page.url()).pathname == "/accounts/login/two_factor") {
-    const securityCode = await read({
-      prompt: (await (await page.$("#verificationCodeDescription"))?.evaluate(el => el.textContent))
-        ?.trim()
-        ?.replace("we", "Instagram")
-        ?.replace(/.$/, ": "),
-    })
+    const verificationCodeMessageEl = (await page.waitForSelector("#verificationCodeDescription"))!
+    const verificationCodeMessage = (await verificationCodeMessageEl.evaluate(el => el.textContent))!
+      .trim()
+      .replace("we", "Instagram")
+      .replace(/.$/, ": ")
 
-    await page.type('input[name="verificationCode"]', securityCode, { delay: randomDelay() })
+    const verificationCode = await read({ prompt: verificationCodeMessage })
+
+    await page.type('input[name="verificationCode"]', verificationCode, { delay: randomDelay() })
     await Promise.all([
       page.waitForNavigation(),
       page.evaluate(() => (document.querySelector("form > div:nth-child(2) > button") as HTMLButtonElement).click()),
