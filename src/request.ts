@@ -17,6 +17,7 @@ async function login(page: Page, auth: { username: string; password: string }) {
   await page.type('input[name="username"]', auth.username, { delay: randomDelay() })
   await page.type('input[name="password"]', auth.password, { delay: randomDelay() })
   await Promise.all([
+    // Register waitForNavigation() first, then trigger navigation
     page.waitForNavigation(),
     page.evaluate(() => (document.querySelector('button[type="submit"]') as HTMLButtonElement).click()),
   ])
