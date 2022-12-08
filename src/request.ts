@@ -65,9 +65,10 @@ async function logout(page: Page) {
 async function extractPostsFromPage(
   page: Page,
   collectionUrl: string,
-  lastSavedPostPk: string | null
+  postsSavedFromLastRun: ReadonlyDeep<Post[]>
 ): Promise<RawPost[]> {
   return new Promise<InstagramResponse[]>(async (resolve, reject) => {
+    const last10SavedPostPk = postsSavedFromLastRun.slice(-10).map(post => post.pk)
     const responses: InstagramResponse[] = []
 
     // ProtocolError will be thrown,
@@ -88,22 +89,17 @@ async function extractPostsFromPage(
 
         // If this is the first incoming response,
         // and the first post in the response is the last post saved in last run
-        if (
-          responses.length == 1 &&
-          lastSavedPostPk != null &&
-          (last(rawPostsFrom(responses)) as Post).pk == lastSavedPostPk
-        ) {
+        if (responses.length == 1 && last(last10SavedPostPk) == last(rawPostsFrom(responses))!.pk) {
           reject(Errors["NO_NEW_POST"])
         }
 
         // The promise exits here
-        // if this is not the first run and we found the last post saved from last run
+        // if this is not the first run and we found the last 10 posts saved from last run
         // in order to avoid unnecessarily fetching posts that are already saved to the data file
-        // ---
-        // json.items.find() is O(N) at worst
-        // but rawPostsFrom() combined with rawPosts.findIndex() will be O(2N) at worst ( both of them are O(N) )
-        // so checking with json.items.find() will be faster
-        if (lastSavedPostPk != null && json.items.find(Post => Post.media.pk == lastSavedPostPk)) {
+        if (
+          postsSavedFromLastRun.length != 0 &&
+          last10SavedPostPk.find(lastSavedPostPk => json.items.find(post => post.media.pk == lastSavedPostPk))
+        ) {
           resolve(responses)
         }
       })
@@ -170,7 +166,7 @@ export async function getNewPosts(
     await login(page, auth)
     replaceLine("Logging in... Done\n")
 
-    const rawPosts = await extractPostsFromPage(page, collectionUrl, last(postsSavedFromLastRun)?.pk ?? null)
+    const rawPosts = await extractPostsFromPage(page, collectionUrl, postsSavedFromLastRun)
     const firstNewPostIndex = findFirstNewPostIndex(rawPosts, postsSavedFromLastRun)
 
     return rawPosts.slice(firstNewPostIndex)
