@@ -41,7 +41,10 @@ async function login(page: Page, auth: { username: string; password: string }) {
       .replace("we", "Instagram")
       .replace(/.$/, ": ")
 
-    const verificationCode = await read({ prompt: verificationCodeMessage })
+    let verificationCode: string
+    do {
+      verificationCode = (await read({ prompt: verificationCodeMessage })).replace(/\s/g, "")
+    } while (/^\d{6}$/.test(verificationCode) == false)
 
     await page.type('input[name="verificationCode"]', verificationCode, { delay: randomDelay() })
     await Promise.all([
