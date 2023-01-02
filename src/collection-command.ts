@@ -2,11 +2,12 @@ import { readFile, writeFile } from "fs/promises"
 
 import { Command } from "commander"
 import keytar from "keytar"
+import read from "read"
 
 import { DATA_FILE_PATH, KEYTAR_SERVICE_NAME } from "./constants.js"
 import { downloadMedias, getNewPosts } from "./request.js"
 import { DataStore, Errors } from "./types.js"
-import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, read } from "./utils.js"
+import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom } from "./utils.js"
 
 const collectionCommand = new Command("collection")
 

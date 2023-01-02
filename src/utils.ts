@@ -3,7 +3,6 @@ import { promisify } from "util"
 import { Command } from "commander"
 import { isEmpty, pick, pickBy } from "lodash-es"
 import { random } from "lodash-es"
-import callbackRead from "read"
 import { ReadonlyDeep } from "type-fest"
 
 import { InstagramResponse, Media, MediaSource, Post, RawPost } from "./types.js"
@@ -28,8 +27,6 @@ export function replaceLine(message: string) {
 export function isValidYesNoOption(userInput: string): userInput is "Y" | "N" {
   return userInput == "Y" || userInput == "N"
 }
-
-export const read = promisify(callbackRead)
 
 // Casting functions used within this file
 

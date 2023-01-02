@@ -5,11 +5,12 @@ import { queue } from "async"
 import download from "download"
 import { last } from "lodash-es"
 import puppeteer, { Page } from "puppeteer"
+import read from "read"
 import { ReadonlyDeep } from "type-fest"
 
 import { MEDIA_FOLDER } from "./constants.js"
 import { Errors, InstagramResponse, MediaSource, Post, RawPost } from "./types.js"
-import { printLine, randomDelay, rawPostsFrom, read, replaceLine } from "./utils.js"
+import { printLine, randomDelay, rawPostsFrom, replaceLine } from "./utils.js"
 
 async function login(page: Page, auth: { username: string; password: string }) {
   // Navigate to login page
