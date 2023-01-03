@@ -1,11 +1,12 @@
-import { promisify } from "util"
+import { writeFile } from "fs/promises"
 
 import { Command } from "commander"
 import { isEmpty, pick, pickBy } from "lodash-es"
 import { random } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
+import { fetch } from "undici"
 
-import { InstagramResponse, Media, MediaSource, Post, RawPost } from "./types.js"
+import { Errors, InstagramResponse, Media, MediaSource, Post, RawPost } from "./types.js"
 
 // Utility functions
 
@@ -22,6 +23,15 @@ export function replaceLine(message: string) {
   process.stdout.clearLine(-1)
   process.stdout.cursorTo(0)
   process.stdout.write(message)
+}
+
+// https://github.com/nodejs/undici/discussions/1593#discussioncomment-3364109
+export async function download(url: string, path: string) {
+  const res = await fetch(url)
+
+  if (res.body == null) throw Errors.DOWNLOAD_FAILED
+
+  await writeFile(path, res.body)
 }
 
 export function isValidYesNoOption(userInput: string): userInput is "Y" | "N" {

@@ -23,16 +23,15 @@
   "dependencies": {
     "async": "^3.2.4",
     "commander": "^9.4.1",
-    "download": "^8.0.0",
     "keytar": "^7.9.0",
     "lodash-es": "^4.17.21",
     "puppeteer": "^19.4.1",
-    "read": "^2.0.0"
+    "read": "^2.0.0",
+    "undici": "^5.14.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",
     "@types/async": "^3.2.16",
-    "@types/download": "^8.0.2",
     "@types/lodash-es": "^4.17.6",
     "@types/node": "^18.11.18",
     "prettier": "^2.8.1",

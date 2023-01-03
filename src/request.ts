@@ -2,7 +2,6 @@ import { join } from "path"
 import { URL } from "url"
 
 import { queue } from "async"
-import download from "download"
 import { last } from "lodash-es"
 import puppeteer, { Page } from "puppeteer"
 import read from "read"
@@ -10,7 +9,7 @@ import { ReadonlyDeep } from "type-fest"
 
 import { MEDIA_FOLDER } from "./constants.js"
 import { Errors, InstagramResponse, MediaSource, Post, RawPost } from "./types.js"
-import { printLine, randomDelay, rawPostsFrom, replaceLine } from "./utils.js"
+import { download, printLine, randomDelay, rawPostsFrom, replaceLine } from "./utils.js"
 
 async function login(page: Page, auth: { username: string; password: string }) {
   // Navigate to login page
@@ -187,7 +186,7 @@ export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) 
   const downloadQueue = queue<MediaSource>(async media => {
     if (media.type == "image" || media.type == "video") {
       const filename = `${media.code}.${media.type == "image" ? "jpg" : "mp4"}`
-      await download(media.url, MEDIA_FOLDER, { filename })
+      await download(media.url, join(MEDIA_FOLDER, filename))
     } else {
       await Promise.all(media.urls.map(url => download(url, join(MEDIA_FOLDER, `${media.code}`))))
     }
