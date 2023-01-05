@@ -11,25 +11,22 @@ import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom } fr
 
 const collectionCommand = new Command("collection")
 
-collectionCommand
-  .command("init")
-  .option("--disable-media-download")
-  .action(async () => {
-    const url = await read({ prompt: "Url of collection: " })
-    const username = await read({ prompt: "Username: " })
-    const password =
-      (await keytar.getPassword(KEYTAR_SERVICE_NAME, username)) ?? (await read({ prompt: "Password: ", silent: true }))
-    let download_media
+collectionCommand.command("init").action(async () => {
+  const url = await read({ prompt: "Url of collection: " })
+  const username = await read({ prompt: "Username: " })
+  const password =
+    (await keytar.getPassword(KEYTAR_SERVICE_NAME, username)) ?? (await read({ prompt: "Password: ", silent: true }))
+  let download_media
 
-    do {
-      download_media = (await read({ prompt: "Download media [Y/n]?", default: "Y" })).toUpperCase().trim()
-    } while (!isValidYesNoOption(download_media))
+  do {
+    download_media = (await read({ prompt: "Download media [Y/n]?", default: "Y" })).toUpperCase().trim()
+  } while (!isValidYesNoOption(download_media))
 
-    const data: DataStore = { url, username, download_media: download_media == "Y", posts: [] }
+  const data: DataStore = { url, username, download_media: download_media == "Y", posts: [] }
 
-    keytar.setPassword(KEYTAR_SERVICE_NAME, username, password)
-    await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
-  })
+  keytar.setPassword(KEYTAR_SERVICE_NAME, username, password)
+  await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
+})
 
 collectionCommand.option("--open", "Open Puppeteer in a window", false).action(defaultCommand)
 async function defaultCommand({ open }: { open: boolean }, command: Command) {
