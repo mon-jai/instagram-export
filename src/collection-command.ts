@@ -31,7 +31,8 @@ collectionCommand
     await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
   })
 
-collectionCommand.action(async (_, command: Command) => {
+collectionCommand.option("--open", "Open Puppeteer in a window", false).action(defaultCommand)
+async function defaultCommand({ open }: { open: boolean }, command: Command) {
   try {
     const {
       url,
@@ -57,7 +58,7 @@ collectionCommand.action(async (_, command: Command) => {
 
     const startTime = Date.now()
 
-    const newPosts = await getNewPosts(url, { username, password }, postsSavedFromLastRun)
+    const newPosts = await getNewPosts(url, { username, password }, postsSavedFromLastRun, open)
     const data: DataStore = {
       url,
       username,
@@ -86,6 +87,6 @@ collectionCommand.action(async (_, command: Command) => {
       console.error(Errors[error] ?? error)
     }
   }
-})
+}
 
 export default collectionCommand

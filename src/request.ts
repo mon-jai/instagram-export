@@ -156,9 +156,10 @@ function findFirstNewPostIndex(rawPosts: RawPost[], postsSavedFromLastRun: Reado
 export async function getNewPosts(
   collectionUrl: string,
   auth: { username: string; password: string },
-  postsSavedFromLastRun: ReadonlyDeep<Post[]>
+  postsSavedFromLastRun: ReadonlyDeep<Post[]>,
+  openWindow: boolean
 ): Promise<RawPost[]> {
-  const browser = await puppeteer.launch()
+  const browser = await puppeteer.launch({ headless: !openWindow })
   const page = await browser.newPage()
   await page.setUserAgent((await browser.userAgent()).replace("HeadlessChrome", "Chrome"))
 
