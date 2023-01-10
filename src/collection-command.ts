@@ -6,7 +6,7 @@ import read from "read"
 import { DATA_FILE_PATH } from "./constants.js"
 import { downloadMedias, getNewPosts } from "./request.js"
 import { DataStore, Errors } from "./types.js"
-import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom } from "./utils.js"
+import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, replaceLine } from "./utils.js"
 
 const collectionCommand = new Command("collection")
 
@@ -55,7 +55,7 @@ async function defaultCommand({ open }: { open: boolean }, command: Command) {
     )
   } catch (error: any) {
     if (error == Errors["NO_NEW_POST"]) {
-      console.log("No new post found")
+      replaceLine("No new post found")
     } else if (error == Errors["NOT_INITIALIZED"] || error?.code == "ENOENT") {
       const initCommand = fullCommandNameFrom(command) + " init"
       console.error(
