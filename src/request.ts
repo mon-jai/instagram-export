@@ -80,7 +80,7 @@ async function extractPostsFromPage(
     try {
       // Capture XHR responses
       page.on("response", async response => {
-        if (!new URL(response.request().url()).pathname.match(/\/api\/v1\/feed\/collection\/\d+\/posts\//)) {
+        if (!new URL(response.request().url()).pathname.match(/\/api\/v1\/feed\/(?:saved|collection\/\d+)\/posts\//)) {
           return
         }
 
