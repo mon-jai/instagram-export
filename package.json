@@ -23,7 +23,6 @@
   "dependencies": {
     "async": "^3.2.4",
     "commander": "^9.4.1",
-    "keytar": "^7.9.0",
     "lodash-es": "^4.17.21",
     "puppeteer": "^19.4.1",
     "read": "^2.0.0",

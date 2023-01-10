@@ -6,8 +6,6 @@ export const { name: COMMAND_NAME, version: COMMAND_VERSION } = createRequire(im
   version: string
 }
 
-export const KEYTAR_SERVICE_NAME = COMMAND_NAME
-
 export const DATA_FILE_PATH = join(process.cwd(), "data.json")
 
 export const MEDIA_FOLDER = join(process.cwd(), "media")

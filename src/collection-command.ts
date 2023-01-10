@@ -1,10 +1,9 @@
 import { readFile, writeFile } from "fs/promises"
 
 import { Command } from "commander"
-import keytar from "keytar"
 import read from "read"
 
-import { DATA_FILE_PATH, KEYTAR_SERVICE_NAME } from "./constants.js"
+import { DATA_FILE_PATH } from "./constants.js"
 import { downloadMedias, getNewPosts } from "./request.js"
 import { DataStore, Errors } from "./types.js"
 import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom } from "./utils.js"
@@ -13,18 +12,14 @@ const collectionCommand = new Command("collection")
 
 collectionCommand.command("init").action(async () => {
   const url = await read({ prompt: "Url of collection: " })
-  const username = await read({ prompt: "Username: " })
-  const password =
-    (await keytar.getPassword(KEYTAR_SERVICE_NAME, username)) ?? (await read({ prompt: "Password: ", silent: true }))
   let download_media
 
   do {
     download_media = (await read({ prompt: "Download media [Y/n]?", default: "Y" })).toUpperCase().trim()
   } while (!isValidYesNoOption(download_media))
 
-  const data: DataStore = { url, username, download_media: download_media == "Y", posts: [] }
+  const data: DataStore = { url, download_media: download_media == "Y", posts: [] }
 
-  keytar.setPassword(KEYTAR_SERVICE_NAME, username, password)
   await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
 })
 
@@ -32,32 +27,19 @@ collectionCommand.option("--open").action(async ({ open = false }: { open?: bool
   try {
     const {
       url,
-      username,
       download_media,
       posts: postsSavedFromLastRun,
     }: Partial<DataStore> = JSON.parse(await readFile(DATA_FILE_PATH, "utf8"))
 
-    if (
-      url == undefined ||
-      username == undefined ||
-      download_media == undefined ||
-      postsSavedFromLastRun == undefined
-    ) {
+    if (url == undefined || download_media == undefined || postsSavedFromLastRun == undefined) {
       throw Errors["NOT_INITIALIZED"]
-    }
-
-    const password = await keytar.getPassword(KEYTAR_SERVICE_NAME, username)
-
-    if (password == null) {
-      throw Errors["PASSWORD_NOT_FOUND"]
     }
 
     const startTime = Date.now()
 
-    const newPosts = await getNewPosts(url, { username, password }, postsSavedFromLastRun, open)
+    const newPosts = await getNewPosts(url, postsSavedFromLastRun, open)
     const data: DataStore = {
       url,
-      username,
       download_media,
       posts: [...postsSavedFromLastRun, ...newPosts.map(postFrom)],
     }
