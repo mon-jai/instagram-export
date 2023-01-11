@@ -1,9 +1,10 @@
-import { readFile, writeFile } from "fs/promises"
+import { existsSync } from "fs"
+import { mkdir, readFile, writeFile } from "fs/promises"
 
 import { Command } from "commander"
 import read from "read"
 
-import { DATA_FILE_PATH } from "./constants.js"
+import { DATA_FILE_PATH, MEDIA_FOLDER } from "./constants.js"
 import { downloadMedias, getNewPosts } from "./request.js"
 import { DataStore, Errors } from "./types.js"
 import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, replaceLine } from "./utils.js"
@@ -44,7 +45,10 @@ collectionCommand.option("--open").action(async ({ open = false }: { open?: bool
       posts: [...postsSavedFromLastRun, ...newPosts.map(postFrom)],
     }
 
-    if (download_media) await downloadMedias(newPosts.map(mediaSourceFrom))
+    if (download_media) {
+      if (!existsSync(MEDIA_FOLDER)) await mkdir(MEDIA_FOLDER)
+      await downloadMedias(newPosts.map(mediaSourceFrom))
+    }
 
     await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
 
