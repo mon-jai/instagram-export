@@ -1,4 +1,4 @@
-import { join } from "path"
+import { dirname, join, resolve } from "path"
 import { URL } from "url"
 
 import { queue } from "async"
@@ -9,13 +9,14 @@ import { ReadonlyDeep } from "type-fest"
 
 import { MEDIA_FOLDER } from "./constants.js"
 import { Errors, InstagramResponse, MediaSource, Post, RawPost } from "./types.js"
-import { download, printLine, randomDelay, rawPostsFrom, replaceLine } from "./utils.js"
+import { download, parseCollectionUrl, printLine, randomDelay, rawPostsFrom, replaceLine } from "./utils.js"
 
-async function login(page: Page, auth: { username: string; password: string }) {
-  // Navigate to login page
-  await page.goto("https://www.instagram.com/accounts/login/", { waitUntil: "networkidle0" })
-  await page.type('input[name="username"]', auth.username, { delay: randomDelay() })
-  await page.type('input[name="password"]', auth.password, { delay: randomDelay() })
+async function login(page: Page, username: string) {
+  const password = await read({ prompt: "Enter Password: ", silent: true, replace: "•" })
+
+  // Already in login page
+  await page.type('input[name="username"]', username, { delay: randomDelay() })
+  await page.type('input[name="password"]', password, { delay: randomDelay() })
   await Promise.all([
     // Register waitForNavigation() first, then trigger navigation
     page.waitForNavigation(),
@@ -56,13 +57,8 @@ async function login(page: Page, auth: { username: string; password: string }) {
   // Skip "Save Your Login Info?" page, if it is displayed
   if (new URL(page.url()).pathname == "/accounts/onetap/") {
     // Press "Not Now" button
-    await page.evaluate(() => document.querySelector<HTMLElement>('main div > div > button[type="button"]')?.click())
+    await page.evaluate(() => document.querySelector<HTMLElement>("main section button")?.click())
   }
-}
-
-async function logout(page: Page) {
-  await page.click('nav span[role="link"]')
-  await page.click('nav hr + [role="button"]')
 }
 
 async function extractPostsFromPage(
@@ -155,28 +151,40 @@ function findFirstNewPostIndex(rawPosts: RawPost[], postsSavedFromLastRun: Reado
 
 export async function getNewPosts(
   collectionUrl: string,
-  auth: { username: string; password: string },
   postsSavedFromLastRun: ReadonlyDeep<Post[]>,
   openWindow: boolean
 ): Promise<RawPost[]> {
-  const browser = await puppeteer.launch({ headless: !openWindow })
+  const userDataDir = resolve(dirname(import.meta.url.replace(/^file:\/\/\//, "")), "../puppeteer-user-data")
+  const username = parseCollectionUrl(collectionUrl).username
+
+  const browser = await puppeteer.launch({
+    headless: !openWindow,
+    userDataDir: userDataDir,
+    args: [`--profile-directory=${username}`],
+  })
+
   const page = await browser.newPage()
   await page.setUserAgent((await browser.userAgent()).replace("HeadlessChrome", "Chrome"))
+  page.setDefaultTimeout(0)
 
   try {
-    page.setDefaultTimeout(0)
+    await page.goto("https://www.instagram.com/", { waitUntil: "networkidle0" })
+    // Wait for homepage to load
+    await page.waitForSelector("main")
 
-    printLine("Logging in...")
-    await login(page, auth)
-    replaceLine("Logging in... Done\n")
+    if ((await page.$("#loginForm")) != null) {
+      printLine("Logging in...")
+      await login(page, username)
+      replaceLine("Logging in... Done\n")
+    } else {
+      console.log("Already logged in")
+    }
 
     const rawPosts = await extractPostsFromPage(page, collectionUrl, postsSavedFromLastRun)
     const firstNewPostIndex = findFirstNewPostIndex(rawPosts, postsSavedFromLastRun)
 
     return rawPosts.slice(firstNewPostIndex)
   } finally {
-    // Cleanup
-    await logout(page).catch(() => {})
     await browser.close()
   }
 }
