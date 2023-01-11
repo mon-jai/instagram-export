@@ -48,7 +48,7 @@ export type InstagramResponse = ReadonlyDeep<{ items: [{ media: RawPost }] }>
 // Data structure used in getUrl()
 export type Media = ReadonlyDeep<Image | Video>
 // The structure of the output data file
-export type DataStore = ReadonlyDeep<{ url: string; username: string; download_media: boolean; posts: Post[] }>
+export type DataStore = ReadonlyDeep<{ url: string; download_media: boolean; posts: Post[] }>
 // The structure used for downloading medias from Instagram
 export type MediaSource = ReadonlyDeep<
   { code: string } & (
@@ -66,4 +66,5 @@ export enum Errors {
   RATE_LIMIT_REACHED,
   PASSWORD_NOT_FOUND,
   DOWNLOAD_FAILED,
+  INVALID_COLLECTION_URL,
 }
