@@ -38,6 +38,20 @@ export function isValidYesNoOption(userInput: string): userInput is "Y" | "N" {
   return userInput == "Y" || userInput == "N"
 }
 
+export function parseCollectionUrl(url: string) {
+  const match = url.match(
+    /^https:\/\/www.instagram.com\/(?<username>[A-Za-z0-9._-]*)\/saved\/(?<collectionName>[^\/]*)\/?(?<collectionId>\d+)?\/?$/
+  )
+
+  if (match == null || match.groups == undefined) throw Errors.INVALID_COLLECTION_URL
+
+  return {
+    username: match.groups.username,
+    collectionName: match.groups.collectionName,
+    collectionId: match.groups.collectionId ?? "all-posts",
+  }
+}
+
 // Casting functions used within this file
 
 function getUrl(media: Media) {
