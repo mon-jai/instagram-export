@@ -5,7 +5,7 @@ import { Command } from "commander"
 import read from "read"
 
 import { DATA_FILE_PATH, MEDIA_FOLDER } from "./constants.js"
-import { downloadMedias, getNewPosts } from "./request.js"
+import { downloadMedias, fetchNewPosts } from "./request.js"
 import { DataStore, Errors } from "./types.js"
 import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, replaceLine } from "./utils.js"
 
@@ -38,7 +38,7 @@ collectionCommand.option("--open").action(async ({ open = false }: { open?: bool
 
     const startTime = Date.now()
 
-    const newPosts = await getNewPosts(url, postsSavedFromLastRun, open)
+    const newPosts = await fetchNewPosts(url, postsSavedFromLastRun, open)
     const data: DataStore = {
       url,
       download_media,

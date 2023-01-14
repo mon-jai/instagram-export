@@ -1,7 +1,7 @@
 import { writeFile } from "fs/promises"
 
 import { Command } from "commander"
-import { isEmpty, pick, pickBy } from "lodash-es"
+import { isEmpty, last, pick, pickBy } from "lodash-es"
 import { random } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
@@ -25,15 +25,6 @@ export function replaceLine(message: string) {
   process.stdout.write(message)
 }
 
-// https://github.com/nodejs/undici/discussions/1593#discussioncomment-3364109
-export async function download(url: string, path: string) {
-  const res = await fetch(url)
-
-  if (res.body == null) throw Errors.DOWNLOAD_FAILED
-
-  await writeFile(path, res.body)
-}
-
 export function isValidYesNoOption(userInput: string): userInput is "Y" | "N" {
   return userInput == "Y" || userInput == "N"
 }
@@ -50,6 +41,36 @@ export function parseCollectionUrl(url: string) {
     collectionName: match.groups.collectionName,
     collectionId: match.groups.collectionId ?? "all-posts",
   }
+}
+
+export function findFirstNewPostIndex(rawPosts: ReadonlyDeep<RawPost[]>, postsSavedFromLastRun: ReadonlyDeep<Post[]>) {
+  // This is the first run
+  if (postsSavedFromLastRun.length == 0) return 0
+
+  const indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == last(postsSavedFromLastRun)?.pk)
+
+  // We found the last saved post in rawPosts
+  if (indexOfLastSavedPost != -1) return indexOfLastSavedPost + 1
+
+  // We couldn't find the last saved post
+  // Look for posts saved in last run, one by one, from bottom to top
+  for (const post of Array.from(postsSavedFromLastRun).reverse()) {
+    const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
+    if (indexOfPost != -1) return indexOfPost + 1
+  }
+
+  // We couldn't find any saved post from last run
+  // The whole rawPosts array will be saved (from 0 to rawPosts.length -1)
+  return 0
+}
+
+// https://github.com/nodejs/undici/discussions/1593#discussioncomment-3364109
+export async function download(url: string, path: string) {
+  const res = await fetch(url)
+
+  if (res.body == null) throw Errors.DOWNLOAD_FAILED
+
+  await writeFile(path, res.body)
 }
 
 // Casting functions used within this file
