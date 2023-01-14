@@ -9,7 +9,15 @@ import { ReadonlyDeep } from "type-fest"
 
 import { MEDIA_FOLDER } from "./constants.js"
 import { Errors, InstagramResponse, MediaSource, Post, RawPost } from "./types.js"
-import { download, parseCollectionUrl, printLine, randomDelay, rawPostsFrom, replaceLine } from "./utils.js"
+import {
+  download,
+  findFirstNewPostIndex,
+  parseCollectionUrl,
+  printLine,
+  randomDelay,
+  rawPostsFrom,
+  replaceLine,
+} from "./utils.js"
 
 async function login(page: Page, username: string) {
   const password = await read({ prompt: "Enter Password: ", silent: true, replace: "•" })
@@ -17,11 +25,8 @@ async function login(page: Page, username: string) {
   // Already in login page
   await page.type('input[name="username"]', username, { delay: randomDelay() })
   await page.type('input[name="password"]', password, { delay: randomDelay() })
-  await Promise.all([
-    // Register waitForNavigation() first, then trigger navigation
-    page.waitForNavigation(),
-    page.evaluate(() => (document.querySelector('button[type="submit"]') as HTMLButtonElement).click()),
-  ])
+  // Register waitForNavigation() first, then trigger navigation
+  await Promise.all([page.waitForNavigation(), page.click('button[type="submit"]')])
 
   // If Instagram displayed a rate limit message, exit earlier
   // <p aria-atomic="true" data-testid="login-error-message" id="slfErrorAlert" role="alert">Please wait a few minutes before you try again.</p>
@@ -32,7 +37,9 @@ async function login(page: Page, username: string) {
     })
     // Under normal executions, browser will be closed while this promise is still waiting
     // thus ProtocolError will be thrown
-    .catch(() => {})
+    .catch(error => {
+      if (error.name != "ProtocolError") throw error
+    })
 
   // Ask for security code if two-factor authentication is enabled for the account
   if (new URL(page.url()).pathname == "/accounts/login/two_factor") {
@@ -57,11 +64,11 @@ async function login(page: Page, username: string) {
   // Skip "Save Your Login Info?" page, if it is displayed
   if (new URL(page.url()).pathname == "/accounts/onetap/") {
     // Press "Not Now" button
-    await page.evaluate(() => document.querySelector<HTMLElement>("main section button")?.click())
+    await page.click("main section button")
   }
 }
 
-async function extractPostsFromPage(
+async function extractPostsFromAPIResponse(
   page: Page,
   collectionUrl: string,
   postsSavedFromLastRun: ReadonlyDeep<Post[]>
@@ -92,14 +99,14 @@ async function extractPostsFromPage(
           reject(Errors["NO_NEW_POST"])
         }
 
-        // The promise exits here
-        // if this is not the first run and we found the last 10 posts saved from last run
-        // in order to avoid unnecessarily fetching posts that are already saved to the data file
-        if (
-          postsSavedFromLastRun.length != 0 &&
-          last10SavedPostPk.find(lastSavedPostPk => json.items.find(post => post.media.pk == lastSavedPostPk))
-        ) {
-          resolve(responses)
+        // If this is not the first run
+        if (postsSavedFromLastRun.length != 0) {
+          // The promise exits here
+          // if found the last 10 posts saved from last run
+          // in order to avoid unnecessarily fetching posts that are already saved to the data file
+          if (last10SavedPostPk.find(lastSavedPostPk => json.items.find(post => post.media.pk == lastSavedPostPk))) {
+            resolve(responses)
+          }
         }
       })
 
@@ -113,9 +120,7 @@ async function extractPostsFromPage(
       // Wait until all posts are loaded (hence the spinner is removed from DOM)
       // There are two spinner elements that will be mounted to DOM
       // both of them are indirect children of `main` but only the second one get mounted is a indirect child of `article`
-      await page.waitForFunction(
-        () => document.querySelector('article [data-visualcompletion="loading-state"]') == null
-      )
+      await page.waitForSelector('article [data-visualcompletion="loading-state"]', { hidden: true })
 
       // Fetched the whole collection, yet didn't found the last post saved from last run
       resolve(responses)
@@ -128,28 +133,7 @@ async function extractPostsFromPage(
   })
 }
 
-function findFirstNewPostIndex(rawPosts: RawPost[], postsSavedFromLastRun: ReadonlyDeep<Post[]>) {
-  // This is the first run
-  if (postsSavedFromLastRun.length == 0) return 0
-
-  const indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == last(postsSavedFromLastRun)?.pk)
-
-  // We found the last saved post in rawPosts
-  if (indexOfLastSavedPost != -1) return indexOfLastSavedPost + 1
-
-  // We couldn't find the last saved post
-  // Look for posts saved in last run, one by one, from bottom to top
-  for (const post of Array.from(postsSavedFromLastRun).reverse()) {
-    const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
-    if (indexOfPost != -1) return indexOfPost + 1
-  }
-
-  // We couldn't find any saved post from last run
-  // The whole rawPosts array will be saved (from 0 to rawPosts.length -1)
-  return 0
-}
-
-export async function getNewPosts(
+export async function fetchNewPosts(
   collectionUrl: string,
   postsSavedFromLastRun: ReadonlyDeep<Post[]>,
   openWindow: boolean
@@ -180,7 +164,7 @@ export async function getNewPosts(
       console.log("Already logged in")
     }
 
-    const rawPosts = await extractPostsFromPage(page, collectionUrl, postsSavedFromLastRun)
+    const rawPosts = await extractPostsFromAPIResponse(page, collectionUrl, postsSavedFromLastRun)
     const firstNewPostIndex = findFirstNewPostIndex(rawPosts, postsSavedFromLastRun)
 
     return rawPosts.slice(firstNewPostIndex)
