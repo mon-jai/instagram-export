@@ -19,6 +19,44 @@ import {
   replaceLine,
 } from "./utils.js"
 
+async function readAndInputVerificationCode(page: Page) {
+  const verificationCodeInputSelector = 'input[name="verificationCode"]'
+  const verificationCodeMessageEl = (await page.waitForSelector("#verificationCodeDescription"))!
+  const verificationCodeMessage = (await verificationCodeMessageEl.evaluate(el => el.textContent))!
+    .trim()
+    .replace("we", "Instagram")
+    .replace(/.$/, ": ")
+
+  return new Promise(async resolve => {
+    // Exit point
+    page.waitForNavigation().then(resolve)
+
+    while (true) {
+      let verificationCode: string = (await read({ prompt: verificationCodeMessage })).replace(/\s/g, "")
+      if (/^\d{6}$/.test(verificationCode) == false) continue
+
+      // Clear previous input, https://stackoverflow.com/a/52633235
+      await page.click(verificationCodeInputSelector)
+      while ((await page.$eval(verificationCodeInputSelector, el => el.value.length)) > 0) {
+        await page.keyboard.press("Backspace", { delay: randomDelay() })
+      }
+      await page.type(verificationCodeInputSelector, verificationCode, { delay: randomDelay() })
+
+      const authenticationResponse = (
+        await Promise.all([
+          page.waitForResponse(
+            response => new URL(response.url()).pathname == "/api/v1/web/accounts/login/ajax/two_factor/"
+          ),
+          page.click("form > div:nth-child(2) > button"),
+        ])
+      )[0]
+
+      if (authenticationResponse.status() == 200) break
+      else console.log("Wrong verification code.")
+    }
+  })
+}
+
 async function login(page: Page, username: string) {
   const password = await read({ prompt: "Enter Password: ", silent: true, replace: "•" })
 
@@ -43,22 +81,7 @@ async function login(page: Page, username: string) {
 
   // Ask for security code if two-factor authentication is enabled for the account
   if (new URL(page.url()).pathname == "/accounts/login/two_factor") {
-    const verificationCodeMessageEl = (await page.waitForSelector("#verificationCodeDescription"))!
-    const verificationCodeMessage = (await verificationCodeMessageEl.evaluate(el => el.textContent))!
-      .trim()
-      .replace("we", "Instagram")
-      .replace(/.$/, ": ")
-
-    let verificationCode: string
-    do {
-      verificationCode = (await read({ prompt: verificationCodeMessage })).replace(/\s/g, "")
-    } while (/^\d{6}$/.test(verificationCode) == false)
-
-    await page.type('input[name="verificationCode"]', verificationCode, { delay: randomDelay() })
-    await Promise.all([
-      page.waitForNavigation(),
-      page.evaluate(() => (document.querySelector("form > div:nth-child(2) > button") as HTMLButtonElement).click()),
-    ])
+    await readAndInputVerificationCode(page)
   }
 
   // Skip "Save Your Login Info?" page, if it is displayed
