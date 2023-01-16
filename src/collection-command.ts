@@ -62,7 +62,7 @@ collectionCommand.option("--open").action(async ({ open = false }: { open?: bool
     } else if (error == Errors["NOT_INITIALIZED"] || error?.code == "ENOENT") {
       const initCommand = fullCommandNameFrom(command) + " init"
       console.error(
-        `Current directory not initialized, make sure to inilize it with \`${initCommand}\` before running this command`
+        `Current directory not initialized, make sure to initialize it with \`${initCommand}\` before running this command`
       )
       collectionCommand.help({ error: true })
     } else {
