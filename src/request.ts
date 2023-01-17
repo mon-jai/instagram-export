@@ -8,14 +8,14 @@ import read from "read"
 import { ReadonlyDeep } from "type-fest"
 
 import { MEDIA_FOLDER } from "./constants.js"
-import { Errors, InstagramResponse, MediaSource, Post, RawPost } from "./types.js"
+import { Errors, InstagramPost, InstagramResponse, MediaSource, Post } from "./types.js"
 import {
   download,
   findFirstNewPostIndex,
+  instagramPostsFrom,
   parseCollectionUrl,
   printLine,
   randomDelay,
-  rawPostsFrom,
   replaceLine,
 } from "./utils.js"
 
@@ -95,7 +95,7 @@ async function extractPostsFromAPIResponse(
   page: Page,
   collectionUrl: string,
   postsSavedFromLastRun: ReadonlyDeep<Post[]>
-): Promise<RawPost[]> {
+): Promise<InstagramPost[]> {
   return new Promise<InstagramResponse[]>(async (resolve, reject) => {
     const last10SavedPostPk = postsSavedFromLastRun.slice(-10).map(post => post.pk)
     const responses: InstagramResponse[] = []
@@ -118,7 +118,7 @@ async function extractPostsFromAPIResponse(
 
         // If this is the first incoming response,
         // and the first post in the response is the last post saved in last run
-        if (responses.length == 1 && last(last10SavedPostPk) == last(rawPostsFrom(responses))!.pk) {
+        if (responses.length == 1 && last(last10SavedPostPk) == last(instagramPostsFrom(responses))!.pk) {
           reject(Errors["NO_NEW_POST"])
         }
 
@@ -152,7 +152,7 @@ async function extractPostsFromAPIResponse(
     }
   }).then(responses => {
     replaceLine(`Getting posts from Instagram... Done (${responses.length} pages) \n`)
-    return rawPostsFrom(responses)
+    return instagramPostsFrom(responses)
   })
 }
 
@@ -160,7 +160,7 @@ export async function fetchNewPosts(
   collectionUrl: string,
   postsSavedFromLastRun: ReadonlyDeep<Post[]>,
   openWindow: boolean
-): Promise<RawPost[]> {
+): Promise<InstagramPost[]> {
   const userDataDir = resolve(dirname(import.meta.url.replace(/^file:\/\/\//, "")), "../puppeteer-user-data")
   const username = parseCollectionUrl(collectionUrl).username
 

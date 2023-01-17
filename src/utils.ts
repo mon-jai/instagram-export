@@ -6,7 +6,7 @@ import { random } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
 
-import { Errors, InstagramResponse, Media, MediaSource, Post, RawPost } from "./types.js"
+import { Errors, InstagramPost, InstagramPostWithMedia, InstagramResponse, Media, MediaSource, Post } from "./types.js"
 
 // Utility functions
 
@@ -43,24 +43,29 @@ export function parseCollectionUrl(url: string) {
   }
 }
 
-export function findFirstNewPostIndex(rawPosts: ReadonlyDeep<RawPost[]>, postsSavedFromLastRun: ReadonlyDeep<Post[]>) {
+export function findFirstNewPostIndex(
+  instagramPosts: ReadonlyDeep<InstagramPost[]>,
+  postsSavedFromLastRun: ReadonlyDeep<Post[]>
+) {
   // This is the first run
   if (postsSavedFromLastRun.length == 0) return 0
 
-  const indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == last(postsSavedFromLastRun)?.pk)
+  const indexOfLastSavedPost = instagramPosts.findIndex(
+    instagramPost => instagramPost.pk == last(postsSavedFromLastRun)?.pk
+  )
 
-  // We found the last saved post in rawPosts
+  // We found the last saved post in instagramPosts
   if (indexOfLastSavedPost != -1) return indexOfLastSavedPost + 1
 
   // We couldn't find the last saved post
   // Look for posts saved in last run, one by one, from bottom to top
   for (const post of Array.from(postsSavedFromLastRun).reverse()) {
-    const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
+    const indexOfPost = instagramPosts.findIndex(instagramPost => instagramPost.pk == post.pk)
     if (indexOfPost != -1) return indexOfPost + 1
   }
 
   // We couldn't find any saved post from last run
-  // The whole rawPosts array will be saved (from 0 to rawPosts.length -1)
+  // The whole instagramPosts array will be saved (from 0 to instagramPosts.length -1)
   return 0
 }
 
@@ -75,7 +80,7 @@ export async function download(url: string, path: string) {
 
 // Casting functions used within this file
 
-function getUrl(media: Media) {
+function getMediaUrl(media: Media) {
   if ("video_versions" in media) {
     return media.video_versions[0].url
   } else {
@@ -85,8 +90,10 @@ function getUrl(media: Media) {
 
 // Casting functions used outside this file
 
-export function postFrom(rawPost: RawPost): Post {
-  const { pk, id, media_type, code, location, user, caption } = rawPost
+export function postFrom(instagramPost: InstagramPost): Post {
+  const { pk, id, media_type, code, location, user, caption, clips_metadata } = instagramPost
+  const music_info = clips_metadata?.music_info?.music_asset_info
+
   const post = {
     pk,
     id,
@@ -95,6 +102,10 @@ export function postFrom(rawPost: RawPost): Post {
     location: pick(location, ["pk", "short_name", "name", "address", "city", "lng", "lat"]),
     user: pick(user, ["pk", "username", "full_name"]),
     caption: pick(caption, ["pk", "text", "created_at"]),
+    music_info: pickBy(
+      music_info,
+      (value, key) => ["title", "id", "display_artist", "artist_id", "ig_username"].includes(key) && value != null
+    ),
   }
 
   // For value equals to undefined (location) or null (caption), pick returns a empty object
@@ -102,24 +113,25 @@ export function postFrom(rawPost: RawPost): Post {
   return pickBy(post, value => typeof value != "object" || !isEmpty(value)) as Post
 }
 
-export function mediaSourceFrom(rawPost: RawPost): MediaSource {
-  if ("image_versions2" in rawPost) {
+export function mediaSourceFrom(instagramPost: InstagramPostWithMedia): MediaSource {
+  if ("image_versions2" in instagramPost) {
+    const { code } = instagramPost
     return {
-      code: rawPost.code,
-      type: "video_versions" in rawPost ? "video" : "image",
-      url: getUrl(rawPost),
+      code,
+      type: "video_versions" in instagramPost ? "video" : "image",
+      url: getMediaUrl(instagramPost),
     }
   } else {
-    const { code, carousel_media } = rawPost
+    const { code, carousel_media } = instagramPost
     return {
-      code: code,
+      code,
       type: "carousel",
-      urls: carousel_media.map(media => getUrl(media)),
+      urls: carousel_media.map(media => getMediaUrl(media)),
     }
   }
 }
 
-export function rawPostsFrom(responses: ReadonlyDeep<InstagramResponse>[]) {
+export function instagramPostsFrom(responses: ReadonlyDeep<InstagramResponse>[]) {
   // Order of responses at the beginning: [{ items: [12, 11, 10, 9] }, { items: [8, 7, 6, 5] }, { items: [4, 3, 2, 1] }]
   return responses
     .reverse() // [{ items: [4, 3, 2, 1] }, { items: [8, 7, 6, 5] }, { items: [12, 11, 10, 9] }]

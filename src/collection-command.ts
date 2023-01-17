@@ -6,7 +6,7 @@ import read from "read"
 
 import { DATA_FILE_PATH, MEDIA_FOLDER } from "./constants.js"
 import { downloadMedias, fetchNewPosts } from "./request.js"
-import { DataStore, Errors } from "./types.js"
+import { DataStore, Errors, InstagramPostWithMedia } from "./types.js"
 import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, replaceLine } from "./utils.js"
 
 const collectionCommand = new Command("collection")
@@ -39,6 +39,7 @@ collectionCommand.option("--open").action(async ({ open = false }: { open?: bool
     const startTime = Date.now()
 
     const newPosts = await fetchNewPosts(url, postsSavedFromLastRun, open)
+
     const data: DataStore = {
       url,
       download_media,
@@ -47,7 +48,7 @@ collectionCommand.option("--open").action(async ({ open = false }: { open?: bool
 
     if (download_media) {
       if (!existsSync(MEDIA_FOLDER)) await mkdir(MEDIA_FOLDER)
-      await downloadMedias(newPosts.map(mediaSourceFrom))
+      await downloadMedias((newPosts as InstagramPostWithMedia[]).map(mediaSourceFrom))
     }
 
     await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
