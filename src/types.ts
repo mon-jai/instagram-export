@@ -1,54 +1,59 @@
 import { ReadonlyDeep } from "type-fest"
 
-// The following types are created for constructing other types
+import MutableInstagramPost, { CarouselMedia, ImageVersions2, VideoVersion } from "./InstagramPost.js"
 
-type Location = {
-  pk: number
-  short_name: string
-  name: string
-  address: string
-  city: string
-  lng: number
-  lat: number
-}
-type User = { pk: number; username: string; full_name: string }
-type Caption = { pk: string; text: string; created_at: number }
-type Image = { image_versions2: { candidates: { url: string }[] } }
-// All videos contain an "image_versions2" key
-type Video = Image & { video_versions: [{ url: string }] }
-type Carousel = { carousel_media: (Image | Video)[] }
-type UndocumentedProperties = { [Key: string]: any }
+// The data structure Instagram used to store posts
+export type InstagramPost = ReadonlyDeep<MutableInstagramPost>
 
-// The following types are not meant to be altered once created,
-// so we mark them as ReadonlyDeep
-// The properties of a Instagram post that will be extracted and saved in the output data file
+// The data format returned by Instagram API
+export type InstagramResponse = ReadonlyDeep<{ items: [{ media: InstagramPost }] }>
 
+// The data format we use to store posts
 export type Post = ReadonlyDeep<{
   pk: string
   id: string
   media_type: number
   code: string
-  location?: Location
-  user: User
-  caption?: Caption
+  location?: {
+    pk: string
+    short_name: string
+    name: string
+    address: string
+    city: string
+    lng?: number
+    lat?: number
+  }
+  user: {
+    pk: string
+    username: string
+    full_name: string
+  }
+  caption?: {
+    pk: string
+    text: string
+    created_at: number
+  }
 }>
 
-// The data structure Instagram used to store posts
-// Properties that are not used will not be documented
-export type RawPost = ReadonlyDeep<
-  Omit<Post, "location" | "user" | "caption"> & {
-    location?: Location & UndocumentedProperties
-    user: User & UndocumentedProperties
-    caption: (Caption & UndocumentedProperties) | null
-  } & (Image | Video | Carousel)
->
-// The raw data format returned by Instagram
-export type InstagramResponse = ReadonlyDeep<{ items: [{ media: RawPost }] }>
+// https://stackoverflow.com/a/75212804
+export type IWithMediaURL = ReadonlyDeep<{
+  image_versions2: ImageVersions2
+  video_versions?: VideoVersion[]
+}>
 
-// Data structure used in getUrl()
-export type Media = ReadonlyDeep<Image | Video>
+export type IWithMedia = ReadonlyDeep<
+  { code: string } & (
+    | {
+        image_versions2: ImageVersions2
+        video_versions?: VideoVersion[]
+      }
+    | { carousel_media: CarouselMedia[] }
+  )
+>
+
 // The structure of the output data file
 export type DataStore = ReadonlyDeep<{ url: string; download_media: boolean; posts: Post[] }>
+
 // The structure used for downloading medias from Instagram
 export type MediaSource = ReadonlyDeep<
   { code: string } & (

@@ -6,7 +6,7 @@ import read from "read"
 
 import { DATA_FILE_PATH, MEDIA_FOLDER } from "./constants.js"
 import { downloadMedias, fetchNewPosts } from "./request.js"
-import { DataStore, Errors } from "./types.js"
+import { DataStore, Errors, IWithMedia } from "./types.js"
 import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, replaceLine } from "./utils.js"
 
 const collectionCommand = new Command("collection")
@@ -48,7 +48,9 @@ async function defaultCommand({ open }: { open: boolean }, command: Command) {
 
     if (download_media) {
       if (!existsSync(MEDIA_FOLDER)) await mkdir(MEDIA_FOLDER)
-      await downloadMedias(newPosts.map(mediaSourceFrom))
+
+      const mediaSources = (newPosts as IWithMedia[]).map(mediaSourceFrom)
+      await downloadMedias(mediaSources)
     }
 
     await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))

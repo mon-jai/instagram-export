@@ -1,14 +1,36 @@
 import { writeFile } from "fs/promises"
 
 import { Command } from "commander"
-import { isEmpty, last, pick, pickBy } from "lodash-es"
+import { isEmpty, last, pickBy } from "lodash-es"
 import { random } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
 
-import { Errors, InstagramResponse, Media, MediaSource, Post, RawPost } from "./types.js"
+import { Errors, IWithMedia, IWithMediaURL, InstagramPost, InstagramResponse, MediaSource, Post } from "./types.js"
 
 // Utility functions
+
+// https://stackoverflow.com/questions/47232518/write-a-typesafe-pick-function-in-typescript
+function pick<T, K extends keyof T>(
+  object: T | null | undefined,
+  includedKeys: Readonly<K[]>
+): NonNullable<Pick<T, K>> {
+  return object != null && object != undefined
+    ? Object.fromEntries(
+        Object.entries(object).map(([key, value]) =>
+          includedKeys.includes(key as K) && value != null && value != undefined && value != "" ? [key, value] : []
+        )
+      )
+    : {}
+}
+
+function getMediaUrl(media: IWithMediaURL) {
+  if ("video_versions" in media) {
+    return media.video_versions[0].url
+  } else {
+    return media.image_versions2.candidates[0].url
+  }
+}
 
 export function randomDelay() {
   return 100 + random(0, 150)
@@ -43,24 +65,29 @@ export function parseCollectionUrl(url: string) {
   }
 }
 
-export function findFirstNewPostIndex(rawPosts: ReadonlyDeep<RawPost[]>, postsSavedFromLastRun: ReadonlyDeep<Post[]>) {
+export function findFirstNewPostIndex(
+  instagramPosts: ReadonlyDeep<InstagramPost[]>,
+  postsSavedFromLastRun: ReadonlyDeep<Post[]>
+) {
   // This is the first run
   if (postsSavedFromLastRun.length == 0) return 0
 
-  const indexOfLastSavedPost = rawPosts.findIndex(rawPost => rawPost.pk == last(postsSavedFromLastRun)?.pk)
+  const indexOfLastSavedPost = instagramPosts.findIndex(
+    instagramPost => instagramPost.pk == last(postsSavedFromLastRun)?.pk
+  )
 
-  // We found the last saved post in rawPosts
+  // We found the last saved post in instagramPosts
   if (indexOfLastSavedPost != -1) return indexOfLastSavedPost + 1
 
   // We couldn't find the last saved post
   // Look for posts saved in last run, one by one, from bottom to top
   for (const post of Array.from(postsSavedFromLastRun).reverse()) {
-    const indexOfPost = rawPosts.findIndex(rawPost => rawPost.pk == post.pk)
+    const indexOfPost = instagramPosts.findIndex(instagramPost => instagramPost.pk == post.pk)
     if (indexOfPost != -1) return indexOfPost + 1
   }
 
   // We couldn't find any saved post from last run
-  // The whole rawPosts array will be saved (from 0 to rawPosts.length -1)
+  // The whole instagramPosts array will be saved (from 0 to instagramPosts.length -1)
   return 0
 }
 
@@ -73,21 +100,12 @@ export async function download(url: string, path: string) {
   await writeFile(path, res.body)
 }
 
-// Casting functions used within this file
+// Casting functions
 
-function getUrl(media: Media) {
-  if ("video_versions" in media) {
-    return media.video_versions[0].url
-  } else {
-    return media.image_versions2.candidates[0].url
-  }
-}
+export function postFrom(instagramPost: InstagramPost): Post {
+  const { pk, id, media_type, code, location, user, caption } = instagramPost
 
-// Casting functions used outside this file
-
-export function postFrom(rawPost: RawPost): Post {
-  const { pk, id, media_type, code, location, user, caption } = rawPost
-  const post = {
+  const post: Post = {
     pk,
     id,
     media_type,
@@ -97,29 +115,33 @@ export function postFrom(rawPost: RawPost): Post {
     caption: pick(caption, ["pk", "text", "created_at"]),
   }
 
-  // For value equals to undefined (location) or null (caption), pick returns a empty object
-  // We remove those empty object before returning
-  return pickBy(post, value => typeof value != "object" || !isEmpty(value)) as Post
+  return pickBy(post, value => {
+    if (Array.isArray(value)) return value.length > 0
+    // For value equals to undefined (location) or null (caption), pick returns a empty object
+    else if (typeof value == "object") return !isEmpty(value)
+    else return true
+  }) as Post
 }
 
-export function mediaSourceFrom(rawPost: RawPost): MediaSource {
-  if ("image_versions2" in rawPost) {
+export function mediaSourceFrom(instagramPost: IWithMedia): MediaSource {
+  if ("image_versions2" in instagramPost) {
+    const { code } = instagramPost
     return {
-      code: rawPost.code,
-      type: "video_versions" in rawPost ? "video" : "image",
-      url: getUrl(rawPost),
+      code,
+      type: "video_versions" in instagramPost ? "video" : "image",
+      url: getMediaUrl(instagramPost),
     }
   } else {
-    const { code, carousel_media } = rawPost
+    const { code, carousel_media } = instagramPost
     return {
-      code: code,
+      code,
       type: "carousel",
-      urls: carousel_media.map(media => getUrl(media)),
+      urls: carousel_media.map(media => getMediaUrl(media)),
     }
   }
 }
 
-export function rawPostsFrom(responses: ReadonlyDeep<InstagramResponse>[]) {
+export function instagramPostsFrom(responses: ReadonlyDeep<InstagramResponse>[]) {
   // Order of responses at the beginning: [{ items: [12, 11, 10, 9] }, { items: [8, 7, 6, 5] }, { items: [4, 3, 2, 1] }]
   return responses
     .reverse() // [{ items: [4, 3, 2, 1] }, { items: [8, 7, 6, 5] }, { items: [12, 11, 10, 9] }]
