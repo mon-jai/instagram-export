@@ -33,6 +33,13 @@ export type Post = ReadonlyDeep<{
     text: string
     created_at: number
   }
+  music_info?: {
+    title: string
+    id: string
+    display_artist: string
+    artist_id: string | null
+    ig_username: string | null
+  }
 }>
 
 export type Media = ReadonlyDeep<{
