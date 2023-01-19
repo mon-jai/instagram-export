@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bootstrap demo</title>
+    <script src="https://unpkg.com/vue@3"></script>
+  </head>
+
+  <body>
+    <div id="app">
+      <p v-for="post in posts">{{ post }}</p>
+    </div>
+
+    <script>
+      Vue.createApp({
+        data() {
+          return { posts: "{{ posts }}" }
+        },
+      }).mount("#app")
+    </script>
+  </body>
+</html>

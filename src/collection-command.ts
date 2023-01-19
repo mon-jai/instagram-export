@@ -1,5 +1,7 @@
 import { existsSync } from "fs"
 import { mkdir, readFile, writeFile } from "fs/promises"
+import { IncomingMessage, ServerResponse, createServer } from "http"
+import { dirname, resolve } from "path"
 
 import { Command } from "commander"
 import read from "read"
@@ -22,6 +24,20 @@ collectionCommand.command("init").action(async () => {
   const data: DataStore = { url, download_media: download_media == "Y", posts: [] }
 
   await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
+})
+
+collectionCommand.command("view").action(async () => {
+  const { posts } = JSON.parse(await readFile(DATA_FILE_PATH, "utf8")) as DataStore
+  const baseHtml = await readFile(
+    resolve(dirname(import.meta.url.replace(/^file:\/\/\//, "")), "../posts.html"),
+    "utf-8"
+  )
+  const html = baseHtml.replace(/["'`]{{ *posts *}}["'`]/, JSON.stringify(posts))
+
+  createServer(async (_, response) => {
+    response.write(html)
+    response.end()
+  }).listen(3000)
 })
 
 collectionCommand.option("--open").action(async ({ open = false }: { open?: boolean }, command: Command) => {
