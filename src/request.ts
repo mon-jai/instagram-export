@@ -1,3 +1,5 @@
+import { existsSync } from "fs"
+import { mkdir } from "fs/promises"
 import { dirname, join, resolve } from "path"
 import { URL } from "url"
 
@@ -202,9 +204,11 @@ export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) 
   const downloadQueue = queue<MediaSource>(async media => {
     if (media.type == "image" || media.type == "video") {
       const filename = `${media.code}.${media.type == "image" ? "jpg" : "mp4"}`
-      await download(media.url, join(MEDIA_FOLDER, filename))
+      await download(media.url, MEDIA_FOLDER, filename)
     } else {
-      await Promise.all(media.urls.map(url => download(url, join(MEDIA_FOLDER, `${media.code}`))))
+      const destination = join(MEDIA_FOLDER, media.code)
+      if (!existsSync(destination)) await mkdir(destination)
+      await Promise.all(media.urls.map(url => download(url, destination)))
     }
 
     downloadedCount++

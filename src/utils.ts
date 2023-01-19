@@ -1,4 +1,5 @@
 import { writeFile } from "fs/promises"
+import { basename, resolve } from "path"
 
 import { Command } from "commander"
 import { isEmpty, last, pickBy } from "lodash-es"
@@ -92,12 +93,12 @@ export function findFirstNewPostIndex(
 }
 
 // https://github.com/nodejs/undici/discussions/1593#discussioncomment-3364109
-export async function download(url: string, path: string) {
-  const res = await fetch(url)
+export async function download(url: string, path: string, filename: string = basename(new URL(url).pathname)) {
+  const response = await fetch(url)
 
-  if (res.body == null) throw Errors.DOWNLOAD_FAILED
+  if (response.body == null) throw Errors.DOWNLOAD_FAILED
 
-  await writeFile(path, res.body)
+  await writeFile(resolve(path, filename), response.body)
 }
 
 // Casting functions
