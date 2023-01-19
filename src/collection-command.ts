@@ -1,5 +1,7 @@
-import { existsSync } from "fs"
-import { mkdir, readFile, writeFile } from "fs/promises"
+import { createReadStream, existsSync } from "fs"
+import { lstat, mkdir, readFile, readdir, writeFile } from "fs/promises"
+import { createServer } from "http"
+import { resolve } from "path"
 
 import { Command } from "commander"
 import read from "read"
@@ -7,7 +9,16 @@ import read from "read"
 import { DATA_FILE_PATH, MEDIA_FOLDER } from "./constants.js"
 import { downloadMedias, fetchNewPosts } from "./request.js"
 import { DataStore, Errors, IWithMedia } from "./types.js"
-import { fullCommandNameFrom, isValidYesNoOption, mediaSourceFrom, postFrom, replaceLine } from "./utils.js"
+import {
+  fullCommandNameFrom,
+  isValidYesNoOption,
+  mediaSourceFrom,
+  parseCollectionUrl,
+  postFrom,
+  postsHTMLFrom,
+  printNotInitializedMessage,
+  replaceLine,
+} from "./utils.js"
 
 const collectionCommand = new Command("collection")
 
@@ -60,18 +71,58 @@ async function fetchCommand({ open }: { open: boolean }, command: Command) {
         `in ${(Date.now() - startTime) / 1000} seconds`
     )
   } catch (error: any) {
-    if (error == Errors["NO_NEW_POST"]) {
-      replaceLine("No new post found")
-    } else if (error == Errors["NOT_INITIALIZED"] || error?.code == "ENOENT") {
-      const initCommand = fullCommandNameFrom(command) + " init"
-      console.error(
-        `Current directory not initialized, make sure to initialize it with \`${initCommand}\` before running this command`
-      )
-      collectionCommand.help({ error: true })
-    } else {
-      console.error(Errors[error] ?? error)
-    }
+    if (error == Errors["NO_NEW_POST"]) replaceLine("No new post found")
+    else if (error == Errors["NOT_INITIALIZED"] || error?.code == "ENOENT") printNotInitializedMessage(command)
+    else console.error(Errors[error] ?? error)
   }
+}
+
+collectionCommand.command("view").option("--port <number>", "Specify server port", "3000").action(viewCommand)
+async function viewCommand({ port }: { port: number }, command: Command) {
+  const mediaFolder = resolve("media")
+  const mediaFiles = await readdir(mediaFolder).catch(() => null)
+
+  let url, posts
+  try {
+    ;({ url, posts } = JSON.parse(await readFile(DATA_FILE_PATH, "utf8")) as DataStore)
+  } catch (error: any) {
+    if (error?.code == "ENOENT") printNotInitializedMessage(command)
+    return
+  }
+
+  const postsSortedByRecency = Array.from(posts).reverse()
+  const mediaPaths =
+    mediaFiles != null
+      ? await Promise.all(
+          postsSortedByRecency.map(async post => {
+            const postFolder = resolve(mediaFolder, post.code)
+            return mediaFiles.includes(post.code) && (await lstat(postFolder)).isDirectory()
+              ? (await readdir(postFolder)).map(file => `${post.code}/${file}`)
+              : [mediaFiles.find(file => file.startsWith(post.code))]
+          })
+        )
+      : null
+  const { collectionName } = parseCollectionUrl(url)
+
+  const html = postsHTMLFrom(collectionName, postsSortedByRecency, mediaPaths)
+
+  createServer((request, response) => {
+    const return404 = () => {
+      response.statusCode = 404
+      response.end()
+    }
+
+    if (request.url == null || request.url == "") {
+      return404()
+    } else if (request.url == "/" || request.url == "index.html") {
+      response.end(html)
+    } else {
+      const filePath = resolve(mediaFolder, request.url.replace(/^\//, ""))
+
+      if (existsSync(filePath)) createReadStream(filePath).pipe(response)
+      else return404()
+    }
+  }).listen(port, () => console.log(`View collection at: http://localhost:${port}/`))
 }
 
 export default collectionCommand

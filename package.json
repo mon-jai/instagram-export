@@ -27,6 +27,7 @@
     "lodash-es": "^4.17.21",
     "puppeteer": "^19.4.1",
     "read": "^2.0.0",
+    "string-dedent": "^3.0.1",
     "undici": "^5.14.0"
   },
   "devDependencies": {
