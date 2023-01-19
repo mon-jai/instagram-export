@@ -2,7 +2,7 @@ import { writeFile } from "fs/promises"
 import { basename, resolve } from "path"
 
 import { Command } from "commander"
-import { isEmpty, last, pick, pickBy } from "lodash-es"
+import { isEmpty, last, pickBy } from "lodash-es"
 import { random } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
@@ -10,6 +10,16 @@ import { fetch } from "undici"
 import { Errors, InstagramPost, InstagramPostWithMedia, InstagramResponse, Media, MediaSource, Post } from "./types.js"
 
 // Utility functions
+
+function pick<T, K extends keyof T>(object: T | undefined, includedKeys: Readonly<K[]>): Pick<T, K> {
+  return object == undefined
+    ? {}
+    : Object.fromEntries(
+        Object.entries(object).map((value, key) =>
+          includedKeys.includes(key as K) && value != null && value != undefined ? [key, value] : []
+        )
+      )
+}
 
 export function randomDelay() {
   return 100 + random(0, 150)
@@ -92,26 +102,29 @@ function getMediaUrl(media: Media) {
 // Casting functions used outside this file
 
 export function postFrom(instagramPost: InstagramPost): Post {
-  const { pk, id, media_type, code, location, user, caption, clips_metadata } = instagramPost
+  const userPathsToInclude = ["pk", "username", "full_name"] as const
+
+  const { pk, id, media_type, code, location, user, caption, clips_metadata, coauthor_producers = [] } = instagramPost
   const music_info = clips_metadata?.music_info?.music_asset_info
 
-  const post = {
+  const post: Post = {
     pk,
     id,
     media_type,
     code,
     location: pick(location, ["pk", "short_name", "name", "address", "city", "lng", "lat"]),
-    user: pick(user, ["pk", "username", "full_name"]),
-    caption: pick(caption, ["pk", "text", "created_at"]),
-    music_info: pickBy(
-      music_info,
-      (value, key) => ["title", "id", "display_artist", "artist_id", "ig_username"].includes(key) && value != null
-    ),
+    user: pick(user, userPathsToInclude),
+    caption: pick(caption ?? undefined, ["pk", "text", "created_at"]),
+    music_info: pick(music_info, ["title", "id", "display_artist", "artist_id", "ig_username"]),
+    coauthor_producers: coauthor_producers.map(coauthor_producer => pick(coauthor_producer, userPathsToInclude)),
   }
 
-  // For value equals to undefined (location) or null (caption), pick returns a empty object
-  // We remove those empty object before returning
-  return pickBy(post, value => typeof value != "object" || !isEmpty(value)) as Post
+  return pickBy(post, value => {
+    if (Array.isArray(value)) return value.length > 0
+    // For value equals to undefined (location) or null (caption), pick returns a empty object
+    else if (typeof value == "object") return !isEmpty(value)
+    else return true
+  }) as Post
 }
 
 export function mediaSourceFrom(instagramPost: InstagramPostWithMedia): MediaSource {

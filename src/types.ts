@@ -8,6 +8,12 @@ export type InstagramPost = ReadonlyDeep<MutableInstagramPost>
 // The data format returned by Instagram API
 export type InstagramResponse = ReadonlyDeep<{ items: [{ media: InstagramPost }] }>
 
+type User = {
+  pk: string
+  username: string
+  full_name: string
+}
+
 // The data format we use to store posts
 export type Post = ReadonlyDeep<{
   pk: string
@@ -23,11 +29,7 @@ export type Post = ReadonlyDeep<{
     lng?: number
     lat?: number
   }
-  user: {
-    pk: number
-    username: string
-    full_name: string
-  }
+  user: User
   caption?: {
     pk: string
     text: string
@@ -40,6 +42,7 @@ export type Post = ReadonlyDeep<{
     artist_id: string | null
     ig_username: string | null
   }
+  coauthor_producers: User[]
 }>
 
 export type Media = ReadonlyDeep<{
