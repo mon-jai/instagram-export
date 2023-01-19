@@ -104,7 +104,10 @@ export async function download(url: string, path: string, filename: string = bas
 // Casting functions
 
 export function postFrom(instagramPost: InstagramPost): Post {
-  const { pk, id, media_type, code, location, user, caption } = instagramPost
+  const userPathsToInclude = ["pk", "username", "full_name"] as const
+
+  const { pk, id, media_type, code, location, user, caption, clips_metadata, coauthor_producers = [] } = instagramPost
+  const music_info = clips_metadata?.music_info?.music_asset_info
 
   const post: Post = {
     pk,
@@ -112,8 +115,10 @@ export function postFrom(instagramPost: InstagramPost): Post {
     media_type,
     code,
     location: pick(location, ["pk", "short_name", "name", "address", "city", "lng", "lat"]),
-    user: pick(user, ["pk", "username", "full_name"]),
+    user: pick(user, userPathsToInclude),
     caption: pick(caption, ["pk", "text", "created_at"]),
+    music_info: pick(music_info, ["title", "id", "display_artist", "artist_id", "ig_username"]),
+    coauthor_producers: coauthor_producers.map(coauthor_producer => pick(coauthor_producer, userPathsToInclude)),
   }
 
   return pickBy(post, value => {
