@@ -4,7 +4,8 @@
   "description": "TODO",
   "main": "bin/index.js",
   "scripts": {
-    "prepare": "node build.js"
+    "prepare": "node build.js",
+    "dev": "tsc --watch"
   },
   "repository": {
     "type": "git",
