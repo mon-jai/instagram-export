@@ -24,8 +24,8 @@ collectionCommand.command("init").action(async () => {
   await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
 })
 
-collectionCommand.option("--open", "Open Puppeteer in a window", false).action(defaultCommand)
-async function defaultCommand({ open }: { open: boolean }, command: Command) {
+collectionCommand.command("fetch").option("--open", "Open Puppeteer in a window", false).action(fetchCommand)
+async function fetchCommand({ open }: { open: boolean }, command: Command) {
   try {
     const {
       url,
