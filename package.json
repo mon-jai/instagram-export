@@ -1,48 +1,68 @@
 {
   "name": "instagram-export",
-  "version": "0.4.0",
-  "description": "TODO",
-  "main": "bin/index.js",
-  "scripts": {
-    "prepare": "node build.js",
-    "dev": "tsc --watch"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mon-jai/instagram-export.git"
-  },
-  "keywords": [
-    "instagram",
-    "download"
-  ],
+  "version": "0.0.0",
+  "description": "Export Instagram collections to git-ified and version controllable achieves",
   "author": "Loh Ka Hong",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/mon-jai/instagram-export/issues"
+  "bin": {
+    "instagram-export": "./bin/run.js"
   },
-  "homepage": "https://github.com/mon-jai/instagram-export-cli#readme",
+  "homepage": "https://github.com/mon-jai/instagram-export",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "repository": "mon-jai/instagram-export",
+  "files": [
+    "/bin",
+    "/dist",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
   "dependencies": {
+    "@oclif/core": "^2",
+    "@oclif/plugin-help": "^5",
+    "@oclif/plugin-plugins": "^2.2.2",
     "async": "^3.2.4",
-    "commander": "^9.4.1",
+    "commander": "^10.0.0",
     "lodash-es": "^4.17.21",
-    "puppeteer": "^19.4.1",
-    "read": "^2.0.0",
+    "puppeteer": "^19.6.0",
     "string-dedent": "^3.0.1",
-    "undici": "^5.14.0"
+    "undici": "^5.16.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",
     "@types/async": "^3.2.16",
     "@types/lodash-es": "^4.17.6",
-    "@types/node": "^18.11.18",
-    "prettier": "^2.8.1",
-    "ts-unused-exports": "^9.0.1",
-    "type-fest": "^3.5.0",
+    "@types/node": "^16.18.11",
+    "oclif": "^3",
+    "prettier": "^2.8.3",
+    "shx": "^0.3.3",
+    "ts-node": "^10.9.1",
+    "ts-unused-exports": "^9.0.2",
+    "tslib": "^2.4.1",
+    "type-fest": "^3.5.3",
     "typescript": "^4.9.4"
   },
-  "type": "module",
-  "bin": {
-    "instagram-export": "bin/index.js"
+  "oclif": {
+    "bin": "instagram-export",
+    "dirname": "instagram-export",
+    "commands": "./dist/commands",
+    "plugins": [],
+    "topicSeparator": " ",
+    "topics": {}
   },
-  "types": "bin/index.d.ts"
+  "scripts": {
+    "build": "shx rm -rf dist && tsc -b",
+    "postpack": "shx rm -f oclif.manifest.json",
+    "prepack": "npm run build && oclif manifest && oclif readme",
+    "version": "oclif readme && git add README.md",
+    "format": "prettier --write ."
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "bugs": "https://github.com/mon-jai/instagram-export/issues",
+  "keywords": [
+    "oclif"
+  ],
+  "types": "dist/index.d.ts",
+  "type": "module"
 }

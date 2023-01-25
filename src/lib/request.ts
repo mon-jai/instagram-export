@@ -1,12 +1,12 @@
 import { existsSync } from "fs"
 import { mkdir } from "fs/promises"
 import { dirname, resolve } from "path"
-import { URL } from "url"
+import { URL, fileURLToPath } from "url"
 
+import { ux } from "@oclif/core"
 import { queue } from "async"
 import { last } from "lodash-es"
 import puppeteer, { Page } from "puppeteer"
-import read from "read"
 import { ReadonlyDeep } from "type-fest"
 
 import { MEDIA_FOLDER } from "./constants.js"
@@ -27,14 +27,14 @@ async function readAndInputVerificationCode(page: Page) {
   const verificationCodeMessage = (await verificationCodeMessageEl.evaluate(el => el.textContent))!
     .trim()
     .replace("we", "Instagram")
-    .replace(/.$/, ": ")
+    .replace(/.$/, "")
 
   return new Promise(async resolve => {
     // Exit point
     page.waitForNavigation().then(resolve)
 
     while (true) {
-      let verificationCode: string = (await read({ prompt: verificationCodeMessage })).replace(/\s/g, "")
+      let verificationCode: string = (await ux.prompt(verificationCodeMessage)).replace(/\s/g, "")
       if (/^\d{6}$/.test(verificationCode) == false) continue
 
       // Clear previous input, https://stackoverflow.com/a/52633235
@@ -60,7 +60,7 @@ async function readAndInputVerificationCode(page: Page) {
 }
 
 async function login(page: Page, username: string) {
-  const password = await read({ prompt: "Enter Password: ", silent: true, replace: "•" })
+  const password = await ux.prompt("Enter Password", { type: "hide" })
 
   // Already in login page
   await page.type('input[name="username"]', username, { delay: randomDelay() })
@@ -116,7 +116,7 @@ async function extractPostsFromAPIResponse(
 
         if (json == null) return
         responses.push(json)
-        replaceLine(`Getting posts from Instagram... (page ${responses.length})`)
+        replaceLine(`Fetching posts from Instagram... (page ${responses.length})`)
 
         // If this is the first incoming response,
         // and the first post in the response is the last post saved in last run
@@ -163,7 +163,7 @@ export async function fetchNewPosts(
   postsSavedFromLastRun: ReadonlyDeep<Post[]>,
   openWindow: boolean
 ): Promise<InstagramPost[]> {
-  const userDataDir = resolve(dirname(import.meta.url.replace(/^file:\/\/\//, "")), "../puppeteer-user-data")
+  const userDataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../puppeteer-user-data")
   const username = parseCollectionUrl(collectionUrl).username
 
   const browser = await puppeteer.launch({
