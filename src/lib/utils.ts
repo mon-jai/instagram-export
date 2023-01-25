@@ -1,13 +1,14 @@
 import { writeFile } from "fs/promises"
 import { basename, resolve } from "path"
 
-import { Command } from "commander"
+import { Command, Help } from "@oclif/core"
 import { isEmpty, last, pickBy, startCase } from "lodash-es"
 import { random } from "lodash-es"
 import html from "string-dedent"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
 
+import Init from "../commands/init.js"
 import { Errors, IWithMedia, IWithMediaURL, InstagramPost, InstagramResponse, MediaSource, Post } from "./types.js"
 
 // Utility functions
@@ -67,12 +68,11 @@ export function parseCollectionUrl(url: string) {
   }
 }
 
-export function printNotInitializedMessage(command: Command) {
-  const initCommand = fullCommandNameFrom(command) + " init"
+export async function printNotInitializedMessage(command: Command) {
   console.error(
-    `Current directory not initialized, make sure to initialize it with \`${initCommand}\` before running this command`
+    `Current directory not initialized, make sure to initialize it with \`${command.config.bin} ${Init.id}\` before running this command\n`
   )
-  command.help({ error: true })
+  await new Help(command.config).showCommandHelp(Init)
 }
 
 export function findFirstNewPostIndex(
@@ -162,18 +162,6 @@ export function instagramPostsFrom(responses: ReadonlyDeep<InstagramResponse>[])
     .reverse() // [{ items: [4, 3, 2, 1] }, { items: [8, 7, 6, 5] }, { items: [12, 11, 10, 9] }]
     .map(result => result.items.map(item => item.media).reverse()) // [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
     .flat() // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-}
-
-export function fullCommandNameFrom(command: Readonly<Command>) {
-  let commandName = ""
-  let currentCommand: Command | null = command
-
-  while (currentCommand != null) {
-    commandName = `${currentCommand.name()} ${commandName}`
-    currentCommand = currentCommand.parent
-  }
-
-  return commandName.trim()
 }
 
 export function postsHTMLFrom(name: string, posts: Post[], mediaPaths: (string | undefined)[][] | null) {
