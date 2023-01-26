@@ -53,7 +53,7 @@
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "postpack": "shx rm -f oclif.manifest.json",
-    "prepack": "npm run build && oclif manifest && oclif readme",
+    "prepack": "npm run format && npm run build && oclif manifest && oclif readme",
     "version": "oclif readme && git add README.md",
     "format": "prettier --write ."
   },
