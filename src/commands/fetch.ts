@@ -13,11 +13,12 @@ export default class Fetch extends Command {
 
   static flags = {
     open: Flags.boolean({ description: "Open Puppeteer in a window", default: false }),
+    "max-page": Flags.integer({ description: "Maximum pages to fetch" }),
   }
 
   public async run(): Promise<void> {
     const {
-      flags: { open },
+      flags: { open, "max-page": maxPage = Number.MAX_VALUE },
     } = await this.parse(Fetch)
 
     const {
@@ -32,7 +33,7 @@ export default class Fetch extends Command {
 
     const startTime = Date.now()
 
-    const newPosts = await fetchNewPosts(url, postsSavedFromLastRun, open)
+    const newPosts = await fetchNewPosts(url, postsSavedFromLastRun, open, maxPage)
     const data: DataStore = {
       url,
       download_media,

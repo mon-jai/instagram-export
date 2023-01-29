@@ -96,7 +96,8 @@ async function login(page: Page, username: string) {
 async function extractPostsFromAPIResponse(
   page: Page,
   collectionUrl: string,
-  postsSavedFromLastRun: ReadonlyDeep<Post[]>
+  postsSavedFromLastRun: ReadonlyDeep<Post[]>,
+  maxPage: number
 ): Promise<InstagramPost[]> {
   return new Promise<InstagramResponse[]>(async (resolve, reject) => {
     const last10SavedPostPk = postsSavedFromLastRun.slice(-10).map(post => post.pk)
@@ -122,6 +123,10 @@ async function extractPostsFromAPIResponse(
         // and the first post in the response is the last post saved in last run
         if (responses.length == 1 && last(last10SavedPostPk) == last(instagramPostsFrom(responses))!.pk) {
           reject(Errors["NO_NEW_POST"])
+        }
+
+        if (responses.length == maxPage) {
+          resolve(responses)
         }
 
         // If this is not the first run
@@ -161,7 +166,8 @@ async function extractPostsFromAPIResponse(
 export async function fetchNewPosts(
   collectionUrl: string,
   postsSavedFromLastRun: ReadonlyDeep<Post[]>,
-  openWindow: boolean
+  openWindow: boolean,
+  maxPage: number
 ): Promise<InstagramPost[]> {
   const userDataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../puppeteer-user-data")
   const username = parseCollectionUrl(collectionUrl).username
@@ -189,7 +195,7 @@ export async function fetchNewPosts(
       console.log("Already logged in")
     }
 
-    const rawPosts = await extractPostsFromAPIResponse(page, collectionUrl, postsSavedFromLastRun)
+    const rawPosts = await extractPostsFromAPIResponse(page, collectionUrl, postsSavedFromLastRun, maxPage)
     const firstNewPostIndex = findFirstNewPostIndex(rawPosts, postsSavedFromLastRun)
 
     return rawPosts.slice(firstNewPostIndex)
