@@ -6,7 +6,10 @@ import MutableInstagramPost, { CarouselMedia, ImageVersions2, VideoVersion } fro
 export type InstagramPost = ReadonlyDeep<MutableInstagramPost>
 
 // The data format returned by Instagram API
-export type InstagramResponse = ReadonlyDeep<{ items: [{ media: InstagramPost }] }>
+type InstagramProfileResponse = ReadonlyDeep<{ items: InstagramPost[] }>
+type InstagramCollectionResponse = ReadonlyDeep<{ items: [{ media: InstagramPost }] }>
+
+export type InstagramResponse = InstagramProfileResponse | InstagramCollectionResponse
 
 type User = {
   pk: string

@@ -3,8 +3,8 @@ import { mkdir } from "fs/promises"
 import { dirname, resolve } from "path"
 import { URL, fileURLToPath } from "url"
 
-import { ux } from "@oclif/core"
 import { queue } from "async"
+import inquirer from "inquirer"
 import { last } from "lodash-es"
 import puppeteer, { Page } from "puppeteer"
 import { ReadonlyDeep } from "type-fest"
@@ -15,8 +15,7 @@ import {
   download,
   findFirstNewPostIndex,
   instagramPostsFrom,
-  parseCollectionUrl,
-  printLine,
+  parseArchiveUrl,
   randomDelay,
   replaceLine,
 } from "./utils.js"
@@ -27,40 +26,57 @@ async function readAndInputVerificationCode(page: Page) {
   const verificationCodeMessage = (await verificationCodeMessageEl.evaluate(el => el.textContent))!
     .trim()
     .replace("we", "Instagram")
-    .replace(/.$/, "")
+    .replace(/.$/, ":")
 
   return new Promise(async resolve => {
+    const transformInput = (input: string) => input.replace(/[^\d]/g, "")
+
     // Exit point
     page.waitForNavigation().then(resolve)
 
-    while (true) {
-      let verificationCode: string = (await ux.prompt(verificationCodeMessage)).replace(/\s/g, "")
-      if (/^\d{6}$/.test(verificationCode) == false) continue
+    await inquirer.prompt({
+      name: "verificationCode",
+      message: verificationCodeMessage,
+      type: "input",
 
-      // Clear previous input, https://stackoverflow.com/a/52633235
-      await page.click(verificationCodeInputSelector)
-      while ((await page.$eval(verificationCodeInputSelector, el => el.value.length)) > 0) {
-        await page.keyboard.press("Backspace", { delay: randomDelay() })
-      }
-      await page.type(verificationCodeInputSelector, verificationCode, { delay: randomDelay() })
+      transformer: transformInput,
 
-      const authenticationResponse = (
-        await Promise.all([
-          page.waitForResponse(
-            response => new URL(response.url()).pathname == "/api/v1/web/accounts/login/ajax/two_factor/"
-          ),
-          page.click("form > div:nth-child(2) > button"),
-        ])
-      )[0]
+      async validate(input: string) {
+        const verificationCode = transformInput(input)
 
-      if (authenticationResponse.status() == 200) break
-      else console.log("Wrong verification code.")
-    }
+        if (/^\d{6}$/.test(verificationCode) == false) {
+          return "Verification code must contains 6 digits."
+        }
+
+        // Clear previous input, https://stackoverflow.com/a/52633235
+        await page.click(verificationCodeInputSelector)
+        while ((await page.$eval(verificationCodeInputSelector, el => el.value.length)) > 0) {
+          await page.keyboard.press("Backspace", { delay: randomDelay() })
+        }
+        await page.type(verificationCodeInputSelector, verificationCode, { delay: randomDelay() })
+
+        const authenticationResponse = (
+          await Promise.all([
+            page.waitForResponse(
+              response => new URL(response.url()).pathname == "/api/v1/web/accounts/login/ajax/two_factor/"
+            ),
+            page.click("form > div:nth-child(2) > button"),
+          ])
+        )[0]
+
+        if (authenticationResponse.status() == 200) return true
+        else return "Wrong verification code."
+      },
+    })
   })
 }
 
 async function login(page: Page, username: string) {
-  const password = await ux.prompt("Enter Password", { type: "hide" })
+  console.log("Logging in...")
+
+  const password = (
+    await inquirer.prompt({ name: "password", message: "Enter Password:", type: "password", mask: "•" })
+  ).password as string
 
   // Already in login page
   await page.type('input[name="username"]', username, { delay: randomDelay() })
@@ -91,6 +107,8 @@ async function login(page: Page, username: string) {
     // Press "Not Now" button
     await page.click("main section button")
   }
+
+  console.log("Logging in... Done")
 }
 
 async function extractPostsFromAPIResponse(
@@ -109,7 +127,14 @@ async function extractPostsFromAPIResponse(
     try {
       // Capture XHR responses
       page.on("response", async response => {
-        if (!new URL(response.request().url()).pathname.match(/\/api\/v1\/feed\/(?:saved|collection\/\d+)\/posts\//)) {
+        // "/api/v1/feed/user/{user_id}/"
+        // "/api/v1/feed/saved/posts/"
+        // "/api/v1/feed/collection/{collection_id}/posts/"
+        if (
+          !new URL(response.request().url()).pathname.match(
+            /^\/api\/v1\/feed\/(?:user\/\d+|saved\/posts|collection\/\d+\/posts)\/$/
+          )
+        ) {
           return
         }
 
@@ -132,9 +157,14 @@ async function extractPostsFromAPIResponse(
         // If this is not the first run
         if (postsSavedFromLastRun.length != 0) {
           // The promise exits here
-          // if found the last 10 posts saved from last run
+          // if we found the last 10 posts saved from last run
           // in order to avoid unnecessarily fetching posts that are already saved to the data file
-          if (last10SavedPostPk.find(lastSavedPostPk => json.items.find(post => post.media.pk == lastSavedPostPk))) {
+          if (
+            last10SavedPostPk.find(lastSavedPostPk =>
+              // https://github.com/microsoft/TypeScript/issues/44373, https://github.com/microsoft/TypeScript/issues/36390#issuecomment-641718624
+              (json.items as any[]).find(post => (post.media?.pk ?? post.pk) == lastSavedPostPk)
+            )
+          ) {
             resolve(responses)
           }
         }
@@ -170,7 +200,7 @@ export async function fetchNewPosts(
   maxPage: number
 ): Promise<InstagramPost[]> {
   const userDataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../puppeteer-user-data")
-  const username = parseCollectionUrl(collectionUrl).username
+  const username = parseArchiveUrl(collectionUrl).username
 
   const browser = await puppeteer.launch({
     headless: !openWindow,
@@ -187,13 +217,8 @@ export async function fetchNewPosts(
     // Wait for homepage to load
     await page.waitForSelector("main")
 
-    if ((await page.$("#loginForm")) != null) {
-      printLine("Logging in...")
-      await login(page, username)
-      replaceLine("Logging in... Done\n")
-    } else {
-      console.log("Already logged in")
-    }
+    if ((await page.$("#loginForm")) != null) await login(page, username)
+    else console.log("Already logged in")
 
     const rawPosts = await extractPostsFromAPIResponse(page, collectionUrl, postsSavedFromLastRun, maxPage)
     const firstNewPostIndex = findFirstNewPostIndex(rawPosts, postsSavedFromLastRun)

@@ -39,10 +39,6 @@ export function randomDelay() {
   return 100 + random(0, 150)
 }
 
-export function printLine(message: string) {
-  process.stdout.write(message)
-}
-
 export function replaceLine(message: string) {
   // https://stackoverflow.com/a/59805130
   process.stdout.clearLine(-1)
@@ -50,21 +46,21 @@ export function replaceLine(message: string) {
   process.stdout.write(message)
 }
 
-export function isValidYesNoOption(userInput: string): userInput is "Y" | "N" {
-  return userInput == "Y" || userInput == "N"
-}
+export function parseArchiveUrl(url: string) {
+  const pathname = new URL(url).pathname
 
-export function parseCollectionUrl(url: string) {
-  const match = url.match(
-    /^https:\/\/www.instagram.com\/(?<username>[A-Za-z0-9._-]*)\/saved\/(?<collectionName>[^\/]*)\/?(?<collectionId>\d+)?\/?$/
-  )
+  const match =
+    pathname.match(/^\/(?<username>[A-Za-z0-9._-]+)\/?$/) ??
+    pathname.match(/^\/(?<username>[A-Za-z0-9._-]+)\/saved\/(?<collectionName>all-posts)\/?$/) ??
+    pathname.match(/^\/(?<username>[A-Za-z0-9._-]+)\/saved\/(?<collectionName>[^\/]+)\/\d+\/?$/)
 
   if (match == null || match.groups == undefined) throw Errors.INVALID_COLLECTION_URL
 
   return {
     username: match.groups.username,
-    collectionName: startCase(match.groups.collectionName.replaceAll("-", " ")),
-    collectionId: match.groups.collectionId ?? "all-posts",
+    archiveName: match.groups.collectionName
+      ? startCase(match.groups.collectionName.replaceAll("-", " "))
+      : match.groups.username,
   }
 }
 
@@ -160,18 +156,18 @@ export function instagramPostsFrom(responses: ReadonlyDeep<InstagramResponse>[])
   // Order of responses at the beginning: [{ items: [12, 11, 10, 9] }, { items: [8, 7, 6, 5] }, { items: [4, 3, 2, 1] }]
   return responses
     .reverse() // [{ items: [4, 3, 2, 1] }, { items: [8, 7, 6, 5] }, { items: [12, 11, 10, 9] }]
-    .map(result => result.items.map(item => item.media).reverse()) // [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
+    .map(result => result.items.map(item => ("media" in item ? item.media : item)).reverse()) // [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
     .flat() // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 }
 
-export function postsHTMLFrom(name: string, posts: Post[], mediaPaths: (string | undefined)[][] | null) {
+export function postsHTMLFrom(archiveName: string, posts: Post[], mediaPaths: (string | undefined)[][] | null) {
   return html`
     <!DOCTYPE html>
     <html lang="en">
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>${name}</title>
+        <title>${archiveName}</title>
 
         <link href="https://esm.sh/@primer/css@20/dist/primer.css" rel="stylesheet" />
         <link href="https://esm.sh/@primer/css@20/dist/base.css" rel="stylesheet" />

@@ -1,30 +1,42 @@
 import { existsSync } from "fs"
 import { writeFile } from "fs/promises"
 
-import { Command, ux } from "@oclif/core"
+import { Command } from "@oclif/core"
+import inquirer from "inquirer"
 
 import { DATA_FILE_PATH } from "../lib/constants.js"
 import { DataStore, Errors } from "../lib/types.js"
-import { isValidYesNoOption } from "../lib/utils.js"
+import { parseArchiveUrl } from "../lib/utils.js"
 
 export default class Init extends Command {
-  static description = "Initialize a new archive"
+  static description = [
+    "Initialize a new archive",
+    "\nSupported URL:",
+    "https://instagram.com/{username}/",
+    "https://instagram.com/{username}/saved/all-posts/",
+    "https://instagram.com/{username}/saved/{collection_name}/{collection_id}/",
+  ].join("\n")
 
   public async run(): Promise<void> {
     if (existsSync(DATA_FILE_PATH)) throw Errors.DATA_FILE_ALREADY_EXISTS
 
-    const url = await ux.prompt("Url of collection")
-    let download_media
+    const { url, download_media } = await inquirer.prompt<{ url: string; download_media: boolean }>([
+      {
+        name: "url",
+        message: "Url of collection:",
+        validate(input) {
+          try {
+            parseArchiveUrl(input)
+            return true
+          } catch (error) {
+            return false
+          }
+        },
+      },
+      { name: "download_media", message: "Download media?", type: "confirm", default: true },
+    ])
 
-    do {
-      download_media = (await ux.prompt("Download media [Y/n]", { type: "mask", default: "Y" })).toUpperCase().trim()
-    } while (!isValidYesNoOption(download_media))
-
-    const data: DataStore = {
-      url,
-      download_media: download_media == "Y",
-      posts: [],
-    }
+    const data: DataStore = { url, download_media, posts: [] }
 
     await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
   }

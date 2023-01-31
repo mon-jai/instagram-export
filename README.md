@@ -44,6 +44,11 @@ USAGE
 
 DESCRIPTION
   Initialize a new archive
+
+  Supported URL:
+  https://instagram.com/{username}/
+  https://instagram.com/{username}/saved/all-posts/
+  https://instagram.com/{username}/saved/{collection_name}/{collection_id}/
 ```
 
 _See code: [dist/commands/init.ts](https://github.com/mon-jai/instagram-export/blob/v0.0.0/dist/commands/init.ts)_

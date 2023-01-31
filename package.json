@@ -1,7 +1,7 @@
 {
   "name": "instagram-export",
   "version": "0.0.0",
-  "description": "Export Instagram collections to git-ified and version controllable achieves",
+  "description": "Export Instagram profiles and collections to git-ified and version controllable achieves",
   "author": "Loh Ka Hong",
   "bin": {
     "instagram-export": "./bin/run.js"
@@ -22,6 +22,7 @@
     "@oclif/plugin-help": "^5",
     "@oclif/plugin-plugins": "^2.2.2",
     "async": "^3.2.4",
+    "inquirer": "^9.1.4",
     "lodash-es": "^4.17.21",
     "puppeteer": "^19.6.0",
     "string-dedent": "^3.0.1",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",
     "@types/async": "^3.2.16",
+    "@types/inquirer": "^9.0.3",
     "@types/lodash-es": "^4.17.6",
     "@types/node": "^16.18.11",
     "oclif": "^3",
