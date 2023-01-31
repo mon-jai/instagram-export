@@ -75,10 +75,14 @@ export type MediaSource = ReadonlyDeep<
 
 // All the errors thrown by us
 export enum Errors {
+  // init
+  DATA_FILE_ALREADY_EXISTS,
+  // fetch
   NOT_INITIALIZED,
+  RATE_LIMIT_REACHED,
   NO_NEW_POST,
   NO_OVERLAP,
-  RATE_LIMIT_REACHED,
   DOWNLOAD_FAILED,
+  // init & fetch
   INVALID_COLLECTION_URL,
 }
