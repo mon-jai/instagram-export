@@ -2,8 +2,10 @@ import { existsSync } from "fs"
 import { mkdir, readFile, writeFile } from "fs/promises"
 
 import { Command, Flags } from "@oclif/core"
+import { isEmpty } from "lodash-es"
+import YAML from "yaml"
 
-import { DATA_FILE_PATH, MEDIA_FOLDER } from "../lib/constants.js"
+import { DATA_FILE_PATH, MEDIA_FOLDER, YAML_CONFIG } from "../lib/constants.js"
 import { downloadMedias, fetchNewPosts } from "../lib/request.js"
 import { DataStore, Errors, IWithMedia } from "../lib/types.js"
 import { mediaSourceFrom, postFrom, printNotInitializedMessage, replaceLine } from "../lib/utils.js"
@@ -25,7 +27,7 @@ export default class Fetch extends Command {
       url,
       download_media,
       posts: postsSavedFromLastRun,
-    }: Partial<DataStore> = JSON.parse(await readFile(DATA_FILE_PATH, "utf8"))
+    }: Partial<DataStore> = YAML.parse(await readFile(DATA_FILE_PATH, "utf8"))
 
     if (url == undefined || download_media == undefined || postsSavedFromLastRun == undefined) {
       throw Errors["NOT_INITIALIZED"]
@@ -47,7 +49,12 @@ export default class Fetch extends Command {
       await downloadMedias(mediaSources)
     }
 
-    await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
+    await writeFile(
+      DATA_FILE_PATH,
+      YAML.stringify(data, (_key, value) => (value != false && isEmpty(value) ? undefined : value), YAML_CONFIG)
+        .replace(/^  /gm, "")
+        .replace(/^-/gm, "\n-")
+    )
 
     console.log(
       `\nFetched ${newPosts.length} new posts${download_media ? " and media " : " "}` +

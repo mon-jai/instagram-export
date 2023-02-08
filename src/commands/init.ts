@@ -3,8 +3,9 @@ import { writeFile } from "fs/promises"
 
 import { Command } from "@oclif/core"
 import inquirer from "inquirer"
+import YAML from "yaml"
 
-import { DATA_FILE_PATH } from "../lib/constants.js"
+import { DATA_FILE_PATH, YAML_CONFIG } from "../lib/constants.js"
 import { DataStore, Errors } from "../lib/types.js"
 import { parseArchiveUrl } from "../lib/utils.js"
 
@@ -38,7 +39,7 @@ export default class Init extends Command {
 
     const data: DataStore = { url, download_media, posts: [] }
 
-    await writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2))
+    await writeFile(DATA_FILE_PATH, YAML.stringify(data, null, YAML_CONFIG))
   }
 
   async catch(error: any) {

@@ -24,9 +24,9 @@ export type Post = ReadonlyDeep<{
   code: string
   taken_at: number
   user: User
-  coauthor_producers: User[]
-  tagged_user: User[]
-  caption: string
+  coauthor_producers?: User[]
+  tagged_user?: User[]
+  caption?: string
   location?: {
     pk: string
     short_name: string

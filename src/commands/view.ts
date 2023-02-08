@@ -4,6 +4,7 @@ import { createServer } from "http"
 import { resolve } from "path"
 
 import { Command, Flags } from "@oclif/core"
+import YAML from "yaml"
 
 import { DATA_FILE_PATH } from "../lib/constants.js"
 import generatePostsHTML from "../lib/post-html.js"
@@ -25,7 +26,7 @@ export default class View extends Command {
     const mediaFolder = resolve("media")
     const mediaFiles = await readdir(mediaFolder).catch(() => null)
 
-    const { url, posts } = JSON.parse(await readFile(DATA_FILE_PATH, "utf8")) as DataStore
+    const { url, posts } = YAML.parse(await readFile(DATA_FILE_PATH, "utf8")) as DataStore
 
     const postsSortedByRecency = Array.from(posts).reverse()
     const mediaPaths =

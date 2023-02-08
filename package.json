@@ -26,7 +26,8 @@
     "lodash-es": "^4.17.21",
     "puppeteer": "^19.6.0",
     "string-dedent": "^3.0.1",
-    "undici": "^5.16.0"
+    "undici": "^5.16.0",
+    "yaml": "^2.2.1"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",

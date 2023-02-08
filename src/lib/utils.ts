@@ -2,7 +2,7 @@ import { writeFile } from "fs/promises"
 import { basename, resolve } from "path"
 
 import { Command, Help } from "@oclif/core"
-import { isEmpty, last, pickBy, startCase } from "lodash-es"
+import { last, startCase } from "lodash-es"
 import { random } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
@@ -112,41 +112,23 @@ function userFrom(instagramUser: { pk: string; username: string; full_name: stri
 }
 
 export function postFrom(instagramPost: InstagramPost): Post {
-  const {
-    pk,
-    taken_at,
-    id,
-    code,
-    location,
-    user,
-    caption,
-    clips_metadata,
-    coauthor_producers = [],
-    usertags,
-  } = instagramPost
+  const { pk, id, code, taken_at, user, coauthor_producers, usertags, caption, location, clips_metadata } =
+    instagramPost
 
   const music_info = clips_metadata?.music_info?.music_asset_info
 
-  const post: Post = {
+  return {
     pk,
     id,
     code,
     taken_at,
     user: userFrom(user),
-    coauthor_producers: coauthor_producers.map(coauthor_producer => userFrom(coauthor_producer)),
+    coauthor_producers: coauthor_producers?.map(coauthor_producer => userFrom(coauthor_producer)) ?? [],
     tagged_user: usertags?.in.map(({ user }) => userFrom(user)) ?? [],
-    caption: caption?.text || "",
+    caption: caption?.text ?? "",
     location: pick(location, ["pk", "short_name", "name", "address", "city", "lng", "lat"]),
     music_info: pick(music_info, ["title", "id", "display_artist", "artist_id", "ig_username"]),
   }
-
-  return pickBy(post, value => {
-    if (Array.isArray(value)) return value.length > 0
-    // For value equals to undefined (location) or null (caption), pick returns a empty object
-    else if (typeof value == "object") return !isEmpty(value)
-    else if (typeof value == "string") return value.length != 0
-    else return true
-  }) as Post
 }
 
 export function mediaSourceFrom(instagramPost: IWithMedia): MediaSource {
