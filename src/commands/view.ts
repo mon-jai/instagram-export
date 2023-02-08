@@ -6,8 +6,9 @@ import { resolve } from "path"
 import { Command, Flags } from "@oclif/core"
 
 import { DATA_FILE_PATH } from "../lib/constants.js"
+import generatePostsHTML from "../lib/post-html.js"
 import { DataStore } from "../lib/types.js"
-import { parseArchiveUrl, postsHTMLFrom, printNotInitializedMessage } from "../lib/utils.js"
+import { parseArchiveUrl, printNotInitializedMessage } from "../lib/utils.js"
 
 export default class View extends Command {
   static description = "View archive in a webpage"
@@ -40,7 +41,7 @@ export default class View extends Command {
         : null
     const { archiveName } = parseArchiveUrl(url)
 
-    const html = postsHTMLFrom(archiveName, postsSortedByRecency, mediaPaths)
+    const html = generatePostsHTML(archiveName, postsSortedByRecency, mediaPaths)
 
     createServer((request, response) => {
       const return404 = () => {
