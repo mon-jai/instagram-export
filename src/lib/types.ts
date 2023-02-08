@@ -21,8 +21,12 @@ type User = {
 export type Post = ReadonlyDeep<{
   pk: string
   id: string
-  media_type: number
   code: string
+  taken_at: number
+  user: User
+  coauthor_producers: User[]
+  tagged_user: User[]
+  caption: string
   location?: {
     pk: string
     short_name: string
@@ -32,12 +36,6 @@ export type Post = ReadonlyDeep<{
     lng?: number
     lat?: number
   }
-  user: User
-  caption?: {
-    pk: string
-    text: string
-    created_at: number
-  }
   music_info?: {
     title: string
     id: string
@@ -45,7 +43,6 @@ export type Post = ReadonlyDeep<{
     artist_id: string | null
     ig_username: string | null
   }
-  coauthor_producers: User[]
 }>
 
 // https://stackoverflow.com/a/75212804

@@ -108,28 +108,44 @@ export async function download(url: string, path: string, filename: string = bas
 
 // Casting functions
 
-export function postFrom(instagramPost: InstagramPost): Post {
-  const userPathsToInclude = ["pk", "username", "full_name"] as const
+function userFrom(instagramUser: { pk: string; username: string; full_name: string }) {
+  return pick(instagramUser, ["pk", "username", "full_name"])
+}
 
-  const { pk, id, media_type, code, location, user, caption, clips_metadata, coauthor_producers = [] } = instagramPost
+export function postFrom(instagramPost: InstagramPost): Post {
+  const {
+    pk,
+    taken_at,
+    id,
+    code,
+    location,
+    user,
+    caption,
+    clips_metadata,
+    coauthor_producers = [],
+    usertags,
+  } = instagramPost
+
   const music_info = clips_metadata?.music_info?.music_asset_info
 
   const post: Post = {
     pk,
     id,
-    media_type,
     code,
+    taken_at,
+    user: userFrom(user),
+    coauthor_producers: coauthor_producers.map(coauthor_producer => userFrom(coauthor_producer)),
+    tagged_user: usertags?.in.map(({ user }) => userFrom(user)) ?? [],
+    caption: caption?.text || "",
     location: pick(location, ["pk", "short_name", "name", "address", "city", "lng", "lat"]),
-    user: pick(user, userPathsToInclude),
-    caption: pick(caption, ["pk", "text", "created_at"]),
     music_info: pick(music_info, ["title", "id", "display_artist", "artist_id", "ig_username"]),
-    coauthor_producers: coauthor_producers.map(coauthor_producer => pick(coauthor_producer, userPathsToInclude)),
   }
 
   return pickBy(post, value => {
     if (Array.isArray(value)) return value.length > 0
     // For value equals to undefined (location) or null (caption), pick returns a empty object
     else if (typeof value == "object") return !isEmpty(value)
+    else if (typeof value == "string") return value.length != 0
     else return true
   }) as Post
 }
