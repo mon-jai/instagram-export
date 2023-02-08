@@ -25,11 +25,13 @@ export default function generatePostsHTML(
         <style>
           body {
             margin: 0;
+            background-color: rgb(250, 250, 250);
           }
 
           #app {
-            display: flex;
             height: 100vh;
+            display: flex;
+            justify-content: center;
           }
 
           .grid {
@@ -48,9 +50,9 @@ export default function generatePostsHTML(
           .grid-item {
             padding-top: 100%;
             border: 1px solid rgb(219, 219, 219);
-            position: relative;
-
             border-radius: 4px;
+
+            position: relative;
             overflow: hidden;
           }
 
@@ -82,6 +84,7 @@ export default function generatePostsHTML(
           }
 
           .info {
+            max-width: 1241px;
             padding: 52px;
             flex: 1;
 
@@ -94,12 +97,12 @@ export default function generatePostsHTML(
           .swiper {
             width: 100%;
             height: 50%;
+            background-color: rgb(239, 239, 239);
 
-            flex-shrink: 0;
             /* Vertically center, https://stackoverflow.com/a/33455342 */
             margin-top: auto;
 
-            background-color: #262626;
+            flex-shrink: 0;
           }
 
           .swiper img,
@@ -111,7 +114,20 @@ export default function generatePostsHTML(
 
           .swiper-button-prev:after,
           .swiper-button-next:after {
-            color: white;
+            font-size: 1.5rem;
+            color: #262626; /* Regular instagram icon's color in light theme */
+          }
+
+          .swiper-button-next {
+            right: 20px;
+          }
+
+          .swiper-button-prev {
+            left: 20px;
+          }
+
+          .swiper-button-disabled {
+            visibility: hidden;
           }
 
           .swiper-pagination-bullet {
@@ -171,6 +187,7 @@ export default function generatePostsHTML(
                   v-if="mediaPaths[index][0].endsWith('.jpg') || mediaPaths[index][0].endsWith('.webp')"
                   :src="mediaPaths[index][0]"
                   class="grid-media"
+                  loading="lazy"
                 />
                 <video v-else :src="mediaPaths[index][0]" class="grid-media" autoplay muted />
               </template>
@@ -184,7 +201,7 @@ export default function generatePostsHTML(
                 <div class="swiper-wrapper">
                   <div class="swiper-slide" v-for="mediaPath in mediaPaths[activeIndex]">
                     <img v-if="mediaPath.endsWith('.jpg') || mediaPath.endsWith('.webp')" :src="mediaPath" />
-                    <video v-else :src="mediaPath" autoplay muted />
+                    <video v-else :src="mediaPath" controls />
                   </div>
                 </div>
                 <div class="swiper-pagination"></div>
@@ -241,6 +258,7 @@ export default function generatePostsHTML(
             methods: {
               initSwiper() {
                 this.swiper = new Swiper(".swiper", {
+                  grabCursor: true,
                   modules: [Navigation, Pagination],
                   navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
                   pagination: { el: ".swiper-pagination" },
