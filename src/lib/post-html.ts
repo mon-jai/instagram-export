@@ -191,7 +191,7 @@ export default function generatePostsHTML(
                 />
                 <video v-else :src="mediaPaths[index][0]" class="grid-media" autoplay muted />
               </template>
-              <div v-else class="grid-placeholder">{{ index + 1 }}</div>
+              <div v-else class="grid-placeholder">{{ posts.length - index }}</div>
             </div>
           </div>
 
