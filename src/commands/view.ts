@@ -33,9 +33,14 @@ export default class View extends Command {
         ? await Promise.all(
             postsSortedByRecency.map(async post => {
               const postFolder = resolve(mediaFolder, post.code)
-              return mediaFiles.includes(post.code) && (await lstat(postFolder)).isDirectory()
-                ? (await readdir(postFolder)).map(file => `${post.code}/${file}`)
-                : [mediaFiles.find(file => file.startsWith(post.code))]
+              if (mediaFiles.includes(post.code) && (await lstat(postFolder)).isDirectory()) {
+                return (await readdir(postFolder)).map(file => `${post.code}/${file}`)
+              } else {
+                const mediaFile = mediaFiles.find(file => file.startsWith(post.code))
+
+                if (mediaFile != undefined) return [mediaFile]
+                else return null
+              }
             })
           )
         : null

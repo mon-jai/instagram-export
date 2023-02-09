@@ -1,11 +1,7 @@
 import { Post } from "./types"
 import html from "string-dedent"
 
-export default function generatePostsHTML(
-  archiveName: string,
-  posts: Post[],
-  mediaPaths: (string | undefined)[][] | null
-) {
+export default function generatePostsHTML(archiveName: string, posts: Post[], mediaPaths: (string[] | null)[] | null) {
   return html`
     <!DOCTYPE html>
     <html lang="en">
@@ -90,6 +86,7 @@ export default function generatePostsHTML(
 
             display: flex;
             flex-direction: column;
+            gap: 52px;
 
             overflow: auto;
           }
@@ -140,15 +137,8 @@ export default function generatePostsHTML(
           }
 
           .markdown-body {
-            margin-top: 52px;
             /* Vertically center, https://stackoverflow.com/a/33455342 */
             margin-bottom: auto;
-          }
-
-          /* mediaPaths == null */
-          .markdown-body:first-child {
-            /* Vertically center, https://stackoverflow.com/a/33455342 */
-            margin-top: auto;
           }
 
           .markdown-body table {
@@ -182,7 +172,7 @@ export default function generatePostsHTML(
               :class="{ active: index == activeIndex }"
               @click="activeIndex = index"
             >
-              <template v-if="mediaPaths != null && mediaPaths[index][0]">
+              <template v-if="mediaPaths?.[index] != null">
                 <img
                   v-if="mediaPaths[index][0].endsWith('.jpg') || mediaPaths[index][0].endsWith('.webp')"
                   :src="mediaPaths[index][0]"
@@ -196,21 +186,17 @@ export default function generatePostsHTML(
           </div>
 
           <div class="info">
-            <template v-if="mediaPaths != null">
-              <div class="swiper">
-                <div class="swiper-wrapper">
-                  <div class="swiper-slide" v-for="mediaPath in mediaPaths[activeIndex]">
-                    <img v-if="mediaPath.endsWith('.jpg') || mediaPath.endsWith('.webp')" :src="mediaPath" />
-                    <video v-else :src="mediaPath" controls />
-                  </div>
+            <div class="swiper" v-show="activePostHasMedia">
+              <div class="swiper-wrapper">
+                <div v-if="activePostHasMedia" v-for="mediaPath in mediaPaths[activeIndex]" class="swiper-slide">
+                  <img v-if="mediaPath.endsWith('.jpg') || mediaPath.endsWith('.webp')" :src="mediaPath" />
+                  <video v-else :src="mediaPath" controls />
                 </div>
-                <div class="swiper-pagination"></div>
-                <div class="swiper-button-prev"></div>
-                <div class="swiper-button-next"></div>
               </div>
-            </template>
+            </div>
 
-            <div class="markdown-body" v-html="tableHTML"></div>
+            <!-- Vertically center, https://stackoverflow.com/a/33455342 -->
+            <div class="markdown-body" v-html="tableHTML" :style="!activePostHasMedia ? { marginTop: 'auto' } : {}" />
           </div>
         </div>
 
@@ -254,25 +240,22 @@ export default function generatePostsHTML(
               tableHTML() {
                 return createTableFromObject(this.posts[this.activeIndex])
               },
-            },
-            methods: {
-              initSwiper() {
-                this.swiper = new Swiper(".swiper", {
-                  grabCursor: true,
-                  modules: [Navigation, Pagination],
-                  navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
-                  pagination: { el: ".swiper-pagination" },
-                })
+              activePostHasMedia() {
+                return this.mediaPaths?.[this.activeIndex] != null
               },
             },
             mounted() {
-              if (this.mediaPaths == null) return
-              this.initSwiper()
+              this.swiper = new Swiper(".swiper", {
+                createElements: true,
+                grabCursor: true,
+                modules: [Navigation, Pagination],
+                navigation: true,
+                pagination: true,
+              })
             },
             updated() {
-              if (this.mediaPaths == null) return
-              this.swiper.destroy()
-              this.initSwiper()
+              this.swiper.update()
+              this.swiper.slideTo(0, 0)
             },
           }).mount("#app")
         </script>
