@@ -23,7 +23,7 @@ import {
 
 // https://stackoverflow.com/questions/47232518/write-a-typesafe-pick-function-in-typescript
 function pick<T, K extends keyof T>(object: T | null | undefined, includedKeys: Readonly<K[]>) {
-  if (object == null || object == undefined) return undefined
+  if (object === null || object === undefined) return undefined
 
   const result = {} as NonNullable<Pick<T, K>>
 
@@ -63,7 +63,7 @@ export function parseArchiveUrl(url: string) {
     pathname.match(/^\/(?<username>[A-Za-z0-9._-]+)\/saved\/(?<collectionName>all-posts)\/?$/) ??
     pathname.match(/^\/(?<username>[A-Za-z0-9._-]+)\/saved\/(?<collectionName>[^\/]+)\/\d+\/?$/)
 
-  if (match == null || match.groups == undefined) throw Errors.INVALID_COLLECTION_URL
+  if (match === null || match.groups === undefined) throw Errors.INVALID_COLLECTION_URL
 
   return {
     username: match.groups.username,
@@ -116,7 +116,7 @@ export function findFirstNewPostIndex(
 export async function download(url: string, path: string, filename: string = basename(new URL(url).pathname)) {
   const response = await fetch(url)
 
-  if (response.body == null) throw Errors.DOWNLOAD_FAILED
+  if (response.body === null) throw Errors.DOWNLOAD_FAILED
 
   await writeFile(resolve(path, filename), response.body)
 }
@@ -155,8 +155,8 @@ export function postFrom(instagramPost: InstagramPost): Post {
     user: userFrom(user),
     coauthor_producers: coauthor_producers?.map(coauthor_producer => userFrom(coauthor_producer)) ?? [],
     tagged_user: usertags?.in.map(({ user }) => userFrom(user)) ?? [],
-    ...(location != undefined ? { location } : {}),
-    ...(music_info != undefined ? { music_info } : {}),
+    ...(location !== undefined ? { location } : {}),
+    ...(music_info !== undefined ? { music_info } : {}),
     caption: caption?.text ?? "",
   }
 }

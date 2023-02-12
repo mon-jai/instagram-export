@@ -140,7 +140,7 @@ async function extractPostsFromAPIResponse(
 
         const json: InstagramResponse | null = await response.json().catch(() => null)
 
-        if (json == null) return
+        if (json === null) return
         responses.push(json)
         replaceLine(`Fetching posts from Instagram... (page ${responses.length})`)
 
@@ -217,7 +217,7 @@ export async function fetchNewPosts(
     // Wait for homepage to load
     await page.waitForSelector("main")
 
-    if ((await page.$("#loginForm")) != null) await login(page, username)
+    if ((await page.$("#loginForm")) !== null) await login(page, username)
     else console.log("Already logged in")
 
     const rawPosts = await extractPostsFromAPIResponse(page, collectionUrl, postsSavedFromLastRun, maxPage)

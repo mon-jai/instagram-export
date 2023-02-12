@@ -28,7 +28,7 @@ export default class Fetch extends Command {
       posts: postsSavedFromLastRun,
     }: Partial<DataStore> = YAML.parse(await readFile(DATA_FILE_PATH, "utf8"))
 
-    if (url == undefined || download_media == undefined || postsSavedFromLastRun == undefined) {
+    if (url === undefined || download_media === undefined || postsSavedFromLastRun === undefined) {
       throw Errors["NOT_INITIALIZED"]
     }
 

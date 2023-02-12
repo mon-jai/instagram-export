@@ -30,7 +30,7 @@ export default class View extends Command {
 
     const postsSortedByRecency = Array.from(posts).reverse()
     const mediaPaths =
-      mediaFiles != null
+      mediaFiles !== null
         ? await Promise.all(
             postsSortedByRecency.map(async post => {
               const postFolder = resolve(mediaFolder, post.code)
@@ -39,7 +39,7 @@ export default class View extends Command {
               } else {
                 const mediaFile = mediaFiles.find(file => file.startsWith(post.code))
 
-                if (mediaFile != undefined) return [mediaFile]
+                if (mediaFile !== undefined) return [mediaFile]
                 else return null
               }
             })
@@ -55,7 +55,7 @@ export default class View extends Command {
         response.end()
       }
 
-      if (request.url == null || request.url == "") {
+      if (request.url === null || request.url === undefined || request.url == "") {
         return404()
       } else if (request.url == "/" || request.url == "index.html") {
         response.end(html)
