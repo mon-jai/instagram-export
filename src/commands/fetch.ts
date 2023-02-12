@@ -2,13 +2,12 @@ import { existsSync } from "fs"
 import { mkdir, readFile, writeFile } from "fs/promises"
 
 import { Command, Flags } from "@oclif/core"
-import { isEmpty } from "lodash-es"
 import YAML from "yaml"
 
 import { DATA_FILE_PATH, MEDIA_FOLDER, YAML_CONFIG } from "../lib/constants.js"
 import { downloadMedias, fetchNewPosts } from "../lib/request.js"
 import { DataStore, Errors, IWithMedia } from "../lib/types.js"
-import { mediaSourceFrom, postFrom, printNotInitializedMessage, replaceLine } from "../lib/utils.js"
+import { isNullableOrEmpty, mediaSourceFrom, postFrom, printNotInitializedMessage, replaceLine } from "../lib/utils.js"
 
 export default class Fetch extends Command {
   static description = "Fetch Instagram for new posts of an archive"
@@ -51,7 +50,7 @@ export default class Fetch extends Command {
 
     await writeFile(
       DATA_FILE_PATH,
-      YAML.stringify(data, (_key, value) => (value != false && isEmpty(value) ? undefined : value), YAML_CONFIG)
+      YAML.stringify(data, (_key, value) => (isNullableOrEmpty(value) ? undefined : value), YAML_CONFIG)
         .replace(/^  /gm, "")
         .replace(/^-/gm, "\n-")
     )

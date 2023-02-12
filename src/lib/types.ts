@@ -11,7 +11,7 @@ type InstagramCollectionResponse = ReadonlyDeep<{ items: [{ media: InstagramPost
 
 export type InstagramResponse = InstagramProfileResponse | InstagramCollectionResponse
 
-type User = {
+export type User = {
   pk: string
   username: string
   full_name: string
@@ -26,7 +26,6 @@ export type Post = ReadonlyDeep<{
   user: User
   coauthor_producers?: User[]
   tagged_user?: User[]
-  caption?: string
   location?: {
     pk: string
     short_name: string
@@ -43,6 +42,7 @@ export type Post = ReadonlyDeep<{
     artist_id: string | null
     ig_username: string | null
   }
+  caption?: string
 }>
 
 // https://stackoverflow.com/a/75212804

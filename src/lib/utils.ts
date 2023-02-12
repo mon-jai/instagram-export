@@ -2,28 +2,38 @@ import { writeFile } from "fs/promises"
 import { basename, resolve } from "path"
 
 import { Command, Help } from "@oclif/core"
-import { last, startCase } from "lodash-es"
+import { isEmpty, last, startCase } from "lodash-es"
 import { random } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
 
 import Init from "../commands/init.js"
-import { Errors, IWithMedia, IWithMediaURL, InstagramPost, InstagramResponse, MediaSource, Post } from "./types.js"
+import {
+  Errors,
+  IWithMedia,
+  IWithMediaURL,
+  InstagramPost,
+  InstagramResponse,
+  MediaSource,
+  Post,
+  User,
+} from "./types.js"
 
 // Utility functions
 
 // https://stackoverflow.com/questions/47232518/write-a-typesafe-pick-function-in-typescript
-function pick<T, K extends keyof T>(
-  object: T | null | undefined,
-  includedKeys: Readonly<K[]>
-): NonNullable<Pick<T, K>> {
-  return object != null && object != undefined
-    ? Object.fromEntries(
-        Object.entries(object).map(([key, value]) =>
-          includedKeys.includes(key as K) && value != null && value != undefined && value != "" ? [key, value] : []
-        )
-      )
-    : {}
+function pick<T, K extends keyof T>(object: T | null | undefined, includedKeys: Readonly<K[]>) {
+  if (object == null || object == undefined) return undefined
+
+  const result = {} as NonNullable<Pick<T, K>>
+
+  // Maintain ordering of keys
+  for (const key of includedKeys) {
+    const value = object[key]
+    if (!isNullableOrEmpty(value)) result[key] = value
+  }
+
+  return result
 }
 
 function getMediaUrl(media: IWithMediaURL) {
@@ -61,6 +71,12 @@ export function parseArchiveUrl(url: string) {
       ? startCase(match.groups.collectionName.replaceAll("-", " "))
       : match.groups.username,
   }
+}
+
+export function isNullableOrEmpty(value: any) {
+  // Include false values and discard empty arrays
+  // isEmpty(false) === false, [] == false
+  return value !== false && isEmpty(value)
 }
 
 export async function printNotInitializedMessage(command: Command) {
@@ -108,14 +124,28 @@ export async function download(url: string, path: string, filename: string = bas
 // Casting functions
 
 function userFrom(instagramUser: { pk: string; username: string; full_name: string }) {
-  return pick(instagramUser, ["pk", "username", "full_name"])
+  return pick(instagramUser, ["pk", "username", "full_name"]) as User
 }
 
 export function postFrom(instagramPost: InstagramPost): Post {
-  const { pk, id, code, taken_at, user, coauthor_producers, usertags, caption, location, clips_metadata } =
-    instagramPost
+  const {
+    pk,
+    id,
+    code,
+    taken_at,
+    user,
+    coauthor_producers,
+    usertags,
+    caption,
+    location: instagramLocation,
+    clips_metadata,
+  } = instagramPost
 
-  const music_info = clips_metadata?.music_info?.music_asset_info
+  const location = pick(instagramLocation, ["pk", "short_name", "name", "address", "city", "lng", "lat"])
+  const music_info = pick(
+    clips_metadata?.music_info?.music_asset_info, //
+    ["title", "id", "display_artist", "artist_id", "ig_username"]
+  )
 
   return {
     pk,
@@ -125,9 +155,9 @@ export function postFrom(instagramPost: InstagramPost): Post {
     user: userFrom(user),
     coauthor_producers: coauthor_producers?.map(coauthor_producer => userFrom(coauthor_producer)) ?? [],
     tagged_user: usertags?.in.map(({ user }) => userFrom(user)) ?? [],
+    ...(location != undefined ? { location } : {}),
+    ...(music_info != undefined ? { music_info } : {}),
     caption: caption?.text ?? "",
-    location: pick(location, ["pk", "short_name", "name", "address", "city", "lng", "lat"]),
-    music_info: pick(music_info, ["title", "id", "display_artist", "artist_id", "ig_username"]),
   }
 }
 
