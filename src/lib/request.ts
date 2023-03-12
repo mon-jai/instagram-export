@@ -3,7 +3,7 @@ import { mkdir } from "fs/promises"
 import { dirname, resolve } from "path"
 import { URL, fileURLToPath } from "url"
 
-import { queue } from "async"
+import { queue, retry } from "async"
 import inquirer from "inquirer"
 import { last } from "lodash-es"
 import puppeteer, { Page } from "puppeteer"
@@ -232,18 +232,20 @@ export async function fetchNewPosts(
 export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) {
   let downloadedCount = 0
 
-  const downloadQueue = queue<MediaSource>(async media => {
-    if (media.type == "image" || media.type == "video") {
-      const filename = `${media.code}.${media.type == "image" ? "jpg" : "mp4"}`
-      await download(media.url, MEDIA_FOLDER, filename)
-    } else {
-      const destination = resolve(MEDIA_FOLDER, media.code)
-      if (!existsSync(destination)) await mkdir(destination)
-      await Promise.all(media.urls.map(url => download(url, destination)))
-    }
+  const downloadQueue = queue<MediaSource>(media => {
+    return retry(10, async () => {
+      if (media.type == "image" || media.type == "video") {
+        const filename = `${media.code}.${media.type == "image" ? "jpg" : "mp4"}`
+        await download(media.url, MEDIA_FOLDER, filename)
+      } else {
+        const destination = resolve(MEDIA_FOLDER, media.code)
+        if (!existsSync(destination)) await mkdir(destination)
+        await Promise.all(media.urls.map(url => download(url, destination)))
+      }
 
-    downloadedCount++
-    replaceLine(`Fetching media... ${downloadedCount}/${mediaSources.length}`)
+      downloadedCount++
+      replaceLine(`Fetching media... ${downloadedCount}/${mediaSources.length}`)
+    })
   }, 10)
 
   downloadQueue.push(Array.from(mediaSources))
