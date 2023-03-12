@@ -10,15 +10,15 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>${archiveName}</title>
 
-        <link href="https://esm.sh/@primer/css@20/dist/primer.css" rel="stylesheet" />
-        <link href="https://esm.sh/@primer/css@20/dist/base.css" rel="stylesheet" />
-        <link href="https://esm.sh/@primer/css@20/dist/markdown.css" rel="stylesheet" />
-
-        <link rel="stylesheet" href="https://esm.sh/swiper@8/swiper.min.css" />
-        <link rel="stylesheet" href="https://esm.sh/swiper@8/modules/navigation/navigation.min.css" />
-        <link rel="stylesheet" href="https://esm.sh/swiper@8/modules/pagination/pagination.min.css" />
-
         <style>
+          @import "https://esm.sh/@primer/css@20/dist/color-modes.css";
+          @import "https://esm.sh/@primer/css@20/dist/base.css";
+          @import "https://esm.sh/@primer/css@20/dist/markdown.css";
+
+          @import "https://esm.sh/swiper@8/swiper.min.css";
+          @import "https://esm.sh/swiper@8/modules/navigation/navigation.min.css";
+          @import "https://esm.sh/swiper@8/modules/pagination/pagination.min.css";
+
           body {
             margin: 0;
             background-color: rgb(250, 250, 250);
@@ -206,9 +206,18 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
           </div>
         </div>
 
+        <script type="importmap">
+          {
+            "imports": {
+              "swiper": "https://esm.sh/swiper@8",
+              "vue": "https://esm.sh/vue@3/dist/vue.esm-browser.js"
+            }
+          }
+        </script>
+
         <script type="module">
-          import Swiper, { Navigation, Pagination } from "https://esm.sh/swiper@8"
-          import { createApp } from "https://esm.sh/vue@3/dist/vue.esm-browser.js"
+          import Swiper, { Navigation, Pagination } from "swiper"
+          import { createApp } from "vue"
 
           function observerCallback(entries) {
             for (const entry of entries) {
