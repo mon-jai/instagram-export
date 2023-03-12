@@ -28,24 +28,27 @@ export default class View extends Command {
 
     const { url, posts } = YAML.parse(await readFile(DATA_FILE, "utf8")) as DataStore
 
+    const { archiveName } = parseArchiveUrl(url)
     const postsSortedByRecency = Array.from(posts).reverse()
-    const mediaPaths =
+    const mediaPaths = Object.fromEntries<string[]>(
       mediaFiles !== null
         ? await Promise.all(
-            postsSortedByRecency.map(async post => {
+            posts.map(async (post): Promise<[string, string[]]> => {
               const postFolder = resolve(mediaFolder, post.code)
+              let medias
+
               if (mediaFiles.includes(post.code) && (await lstat(postFolder)).isDirectory()) {
-                return (await readdir(postFolder)).map(file => `${post.code}/${file}`)
+                medias = (await readdir(postFolder)).map(file => `${post.code}/${file}`)
               } else {
                 const mediaFile = mediaFiles.find(file => file.startsWith(post.code))
-
-                if (mediaFile !== undefined) return [mediaFile]
-                else return null
+                medias = mediaFile !== undefined ? [mediaFile] : []
               }
+
+              return [post.code, medias]
             })
           )
-        : null
-    const { archiveName } = parseArchiveUrl(url)
+        : posts.map(post => [post.code, []])
+    )
 
     const html = generatePostsHTML(archiveName, postsSortedByRecency, mediaPaths)
 

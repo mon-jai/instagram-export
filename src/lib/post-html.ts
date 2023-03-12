@@ -1,7 +1,7 @@
 import { Post } from "./types"
 import html from "string-dedent"
 
-export default function generatePostsHTML(archiveName: string, posts: Post[], mediaPaths: (string[] | null)[] | null) {
+export default function generatePostsHTML(archiveName: string, posts: Post[], mediaPaths: { [K: string]: string[] }) {
   return html`
     <!DOCTYPE html>
     <html lang="en">
@@ -175,34 +175,33 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
             <div
               v-for="(post, index) in posts"
               class="grid-item"
-              :class="{ active: index == activeIndex }"
-              @click="activeIndex = index"
+              :class="{ active: post === activePost }"
+              @click="activePost = post"
             >
-              <template v-if="mediaPaths?.[index] != null">
-                <img
-                  v-if="mediaPaths[index][0].endsWith('.jpg') || mediaPaths[index][0].endsWith('.webp')"
-                  :data-src="mediaPaths[index][0]"
-                  class="grid-media"
-                  lazy-load
-                />
-                <video v-else :data-src="mediaPaths[index][0]" class="grid-media" muted lazy-load />
+              <template v-if="mediaPaths[post.code].length > 0">
+                <img v-if="isImage(mediaPaths[post.code][0])" :data-src="mediaPaths[post.code][0]" class="grid-media" />
+                <video v-else :data-src="mediaPaths[post.code][0]" class="grid-media" muted />
               </template>
               <div v-else class="grid-placeholder">{{ posts.length - index }}</div>
             </div>
           </div>
 
           <div class="info">
-            <div class="swiper" v-show="activePostHasMedia">
+            <div class="swiper" v-show="activePostMedias.length > 0">
               <div class="swiper-wrapper">
-                <div v-if="activePostHasMedia" v-for="mediaPath in mediaPaths[activeIndex]" class="swiper-slide">
-                  <img v-if="mediaPath.endsWith('.jpg') || mediaPath.endsWith('.webp')" :src="mediaPath" />
-                  <video v-else :src="mediaPath" controls />
+                <div v-for="media in activePostMedias" class="swiper-slide">
+                  <img v-if="isImage(media)" :src="media" />
+                  <video v-else :src="media" controls />
                 </div>
               </div>
             </div>
 
             <!-- Vertically center, https://stackoverflow.com/a/33455342 -->
-            <div class="markdown-body" v-html="tableHTML" :style="!activePostHasMedia ? { marginTop: 'auto' } : {}" />
+            <div
+              class="markdown-body"
+              v-html="tableHTML"
+              :style="activePostMedias.length == 0 ? { marginTop: 'auto' } : {}"
+            />
           </div>
         </div>
 
@@ -238,39 +237,37 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
 
           function createTr(...args) {
             const [key, value] = args.flat()
-            return "<tr><td>" + key + "</td><td>" + value + "</td></tr>"
+            return "<tr><td>" + key + "</td><td>" + formatValue(value) + "</td></tr>"
+          }
+
+          function formatValue(value) {
+            return Array.isArray(value)
+              ? value.map(formatValue).join("")
+              : typeof value === "object"
+              ? createTableFromObject(value)
+              : value
           }
 
           function createTableFromObject(object) {
-            return createTable(
-              Object.entries(object).map(([key, value]) =>
-                createTr(
-                  key,
-                  Array.isArray(value)
-                    ? value.map(element => createTableFromObject(element)).join("")
-                    : typeof value == "object"
-                    ? createTableFromObject(value)
-                    : value
-                )
-              )
-            )
+            return createTable(Object.entries(object).map(createTr))
           }
 
           createApp({
             data() {
+              const posts = ${JSON.stringify(posts)}
               return {
-                posts: ${JSON.stringify(posts)},
+                posts,
+                activePost: posts[0],
                 mediaPaths: ${JSON.stringify(mediaPaths)},
-                activeIndex: 0,
                 observer: new IntersectionObserver(observerCallback),
               }
             },
             computed: {
               tableHTML() {
-                return createTableFromObject(this.posts[this.activeIndex])
+                return createTableFromObject(this.activePost)
               },
-              activePostHasMedia() {
-                return this.mediaPaths?.[this.activeIndex] != null
+              activePostMedias() {
+                return this.mediaPaths[this.activePost.code]
               },
             },
             methods: {
@@ -278,6 +275,9 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
                 for (const gridItem of document.getElementsByClassName("grid-item")) {
                   this.observer.observe(gridItem)
                 }
+              },
+              isImage(media) {
+                return media.endsWith(".jpg") || media.endsWith(".webp")
               },
             },
             mounted() {
