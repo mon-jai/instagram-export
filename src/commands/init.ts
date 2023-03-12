@@ -5,7 +5,7 @@ import { Command } from "@oclif/core"
 import inquirer from "inquirer"
 import YAML from "yaml"
 
-import { DATA_FILE_PATH, YAML_CONFIG } from "../lib/constants.js"
+import { DATA_FILE, DATA_FILENAME, YAML_CONFIG } from "../lib/constants.js"
 import { DataStore, Errors } from "../lib/types.js"
 import { parseArchiveUrl } from "../lib/utils.js"
 
@@ -19,7 +19,7 @@ export default class Init extends Command {
   ].join("\n")
 
   public async run(): Promise<void> {
-    if (existsSync(DATA_FILE_PATH)) throw Errors.DATA_FILE_ALREADY_EXISTS
+    if (existsSync(DATA_FILE)) throw Errors.DATA_FILE_ALREADY_EXISTS
 
     const { url, download_media } = await inquirer.prompt<{ url: string; download_media: boolean }>([
       {
@@ -39,12 +39,14 @@ export default class Init extends Command {
 
     const data: DataStore = { url, download_media, posts: [] }
 
-    await writeFile(DATA_FILE_PATH, YAML.stringify(data, null, YAML_CONFIG))
+    await writeFile(DATA_FILE, YAML.stringify(data, null, YAML_CONFIG))
   }
 
   async catch(error: any) {
     if (error == Errors["DATA_FILE_ALREADY_EXISTS"]) {
-      console.log("data.json already exists in the current directory. This archive has already been initialized.")
+      console.log(
+        `${DATA_FILENAME} already exists in the current directory. This archive has already been initialized.`
+      )
     } else {
       throw error
     }

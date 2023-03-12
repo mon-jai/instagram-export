@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from "fs/promises"
 import { Command, Flags } from "@oclif/core"
 import YAML from "yaml"
 
-import { DATA_FILE_PATH, MEDIA_FOLDER, YAML_CONFIG } from "../lib/constants.js"
+import { DATA_FILE, MEDIA_FOLDER, YAML_CONFIG } from "../lib/constants.js"
 import { downloadMedias, fetchNewPosts } from "../lib/request.js"
 import { DataStore, Errors, IWithMedia } from "../lib/types.js"
 import { isNullableOrEmpty, mediaSourceFrom, postFrom, printNotInitializedMessage, replaceLine } from "../lib/utils.js"
@@ -26,7 +26,7 @@ export default class Fetch extends Command {
       url,
       download_media,
       posts: postsSavedFromLastRun,
-    }: Partial<DataStore> = YAML.parse(await readFile(DATA_FILE_PATH, "utf8"))
+    }: Partial<DataStore> = YAML.parse(await readFile(DATA_FILE, "utf8"))
 
     if (url === undefined || download_media === undefined || postsSavedFromLastRun === undefined) {
       throw Errors["NOT_INITIALIZED"]
@@ -49,7 +49,7 @@ export default class Fetch extends Command {
     }
 
     await writeFile(
-      DATA_FILE_PATH,
+      DATA_FILE,
       YAML.stringify(data, (_key, value) => (isNullableOrEmpty(value) ? undefined : value), YAML_CONFIG)
         .replace(/^  /gm, "")
         .replace(/^-/gm, "\n-")
