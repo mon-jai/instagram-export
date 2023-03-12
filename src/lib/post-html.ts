@@ -52,6 +52,12 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
             overflow: hidden;
           }
 
+          .grid-item.outside-viewport {
+            visibility: hidden;
+            /* https://stackoverflow.com/a/62844817 */
+            content-visibility: hidden;
+          }
+
           .grid-media,
           .grid-placeholder,
           .grid-item.active:after {
@@ -175,11 +181,11 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
               <template v-if="mediaPaths?.[index] != null">
                 <img
                   v-if="mediaPaths[index][0].endsWith('.jpg') || mediaPaths[index][0].endsWith('.webp')"
-                  :src="mediaPaths[index][0]"
+                  :data-src="mediaPaths[index][0]"
                   class="grid-media"
-                  loading="lazy"
+                  lazy-load
                 />
-                <video v-else :src="mediaPaths[index][0]" class="grid-media" autoplay muted />
+                <video v-else :data-src="mediaPaths[index][0]" class="grid-media" muted lazy-load />
               </template>
               <div v-else class="grid-placeholder">{{ posts.length - index }}</div>
             </div>
@@ -203,6 +209,19 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
         <script type="module">
           import Swiper, { Navigation, Pagination } from "https://esm.sh/swiper@8"
           import { createApp } from "https://esm.sh/vue@3/dist/vue.esm-browser.js"
+
+          function observerCallback(entries) {
+            for (const entry of entries) {
+              if (entry.intersectionRatio > 0) {
+                const mediaTag = entry.target.children[0]
+
+                if (!mediaTag.hasAttribute("src")) mediaTag.src = mediaTag.dataset.src
+                entry.target.classList.remove("outside-viewport")
+              } else {
+                entry.target.classList.add("outside-viewport")
+              }
+            }
+          }
 
           function createTable(trs) {
             return "<table>" + trs.join("") + "</table>"
@@ -234,6 +253,7 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
                 posts: ${JSON.stringify(posts)},
                 mediaPaths: ${JSON.stringify(mediaPaths)},
                 activeIndex: 0,
+                observer: new IntersectionObserver(observerCallback),
               }
             },
             computed: {
@@ -244,6 +264,13 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
                 return this.mediaPaths?.[this.activeIndex] != null
               },
             },
+            methods: {
+              initObserver() {
+                for (const gridItem of document.getElementsByClassName("grid-item")) {
+                  this.observer.observe(gridItem)
+                }
+              },
+            },
             mounted() {
               this.swiper = new Swiper(".swiper", {
                 createElements: true,
@@ -252,10 +279,13 @@ export default function generatePostsHTML(archiveName: string, posts: Post[], me
                 navigation: true,
                 pagination: true,
               })
+              this.initObserver()
             },
             updated() {
               this.swiper.update()
               this.swiper.slideTo(0, 0)
+              this.observer.disconnect()
+              this.initObserver()
             },
           }).mount("#app")
         </script>
