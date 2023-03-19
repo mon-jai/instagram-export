@@ -4,6 +4,7 @@ import { createServer } from "http"
 import { resolve } from "path"
 
 import { Command, Flags } from "@oclif/core"
+import open from "open"
 import YAML from "yaml"
 
 import { DATA_FILE } from "../lib/constants.js"
@@ -68,7 +69,12 @@ export default class View extends Command {
         if (existsSync(filePath)) createReadStream(filePath).pipe(response)
         else return404()
       }
-    }).listen(port, () => console.log(`View collection at: http://localhost:${port}/`))
+    }).listen(port, async () => {
+      const url = `http://localhost:${port}/`
+
+      console.log(`View collection at: ${url}`)
+      await open(url)
+    })
   }
 
   async catch(error: any) {
