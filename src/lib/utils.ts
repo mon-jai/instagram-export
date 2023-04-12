@@ -144,7 +144,7 @@ export function postFrom(instagramPost: InstagramPost): Post {
   const location = pick(instagramLocation, ["pk", "short_name", "name", "address", "city", "lng", "lat"])
   const music_info = pick(
     clips_metadata?.music_info?.music_asset_info, //
-    ["title", "id", "display_artist", "artist_id", "ig_username"]
+    ["audio_cluster_id", "id", "title", "display_artist", "artist_id", "ig_username"]
   )
 
   return {
