@@ -253,6 +253,6 @@ export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) 
 
   replaceLine("Fetching media... Done\n")
   if (downloadedCount != mediaSources.length) {
-    console.log(`${mediaSources.length - downloadedCount} Posts failed to download`)
+    console.log(`${mediaSources.length - downloadedCount} posts failed to download.`)
   }
 }
