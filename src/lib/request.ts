@@ -232,7 +232,7 @@ export async function fetchNewPosts(
 export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) {
   let downloadedCount = 0
 
-  const downloadQueue = queue<MediaSource>(media => {
+  const downloadQueue = queue<MediaSource>(async media => {
     return retry(10, async () => {
       if (media.type == "image" || media.type == "video") {
         const filename = `${media.code}.${media.type == "image" ? "jpg" : "mp4"}`
