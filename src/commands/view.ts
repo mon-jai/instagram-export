@@ -8,9 +8,9 @@ import open from "open"
 import YAML from "yaml"
 
 import { DATA_FILE } from "../lib/constants.js"
-import generatePostsHTML from "../lib/post-html.js"
 import { DataStore } from "../lib/types.js"
 import { parseArchiveUrl, printNotInitializedMessage } from "../lib/utils.js"
+import generateViewHTML from "../lib/view-html.js"
 
 export default class View extends Command {
   static description = "View archive in a webpage"
@@ -51,7 +51,7 @@ export default class View extends Command {
         : posts.map(post => [post.code, []])
     )
 
-    const html = generatePostsHTML(archiveName, postsSortedByRecency, mediaPaths)
+    const html = await generateViewHTML({ archiveName, posts: postsSortedByRecency, mediaPaths })
 
     createServer((request, response) => {
       const return404 = () => {
