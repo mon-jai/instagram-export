@@ -36,8 +36,9 @@ export type Post = ReadonlyDeep<{
     lat?: number
   }
   music_info?: {
-    title: string
+    audio_cluster_id: string
     id: string
+    title: string
     display_artist: string
     artist_id: string | null
     ig_username: string | null
