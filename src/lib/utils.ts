@@ -74,9 +74,9 @@ export function parseArchiveUrl(url: string) {
 }
 
 export function isNullableOrEmpty(value: any) {
-  // Include false values and discard empty arrays
-  // isEmpty(false) === false, [] == false
-  return value !== false && isEmpty(value)
+  // Include primitive values and discard empty arrays/objects
+  // https://github.com/lodash/lodash/issues/3523#issuecomment-347555398
+  return typeof value != "object" && isEmpty(value)
 }
 
 export async function printNotInitializedMessage(command: Command) {
