@@ -3,6 +3,7 @@ import { writeFile } from "fs/promises"
 
 import { Command } from "@oclif/core"
 import inquirer from "inquirer"
+import dedent from "string-dedent"
 import YAML from "yaml"
 
 import { DATA_FILE, DATA_FILENAME, YAML_CONFIG } from "../lib/constants.js"
@@ -10,13 +11,14 @@ import { DataStore, Errors } from "../lib/types.js"
 import { parseArchiveUrl } from "../lib/utils.js"
 
 export default class Init extends Command {
-  static description = [
-    "Initialize a new archive",
-    "\nSupported URL:",
-    "https://instagram.com/{username}/",
-    "https://instagram.com/{username}/saved/all-posts/",
-    "https://instagram.com/{username}/saved/{collection_name}/{collection_id}/",
-  ].join("\n")
+  static description = dedent`
+    Initialize a new archive
+
+    Supported URL:
+    https://instagram.com/{username}/
+    https://instagram.com/{username}/saved/all-posts/
+    https://instagram.com/{username}/saved/{collection_name}/{collection_id}/
+  `
 
   public async run(): Promise<void> {
     if (existsSync(DATA_FILE)) throw Errors.DATA_FILE_ALREADY_EXISTS
