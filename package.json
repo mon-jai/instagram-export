@@ -27,6 +27,7 @@
     "lodash-es": "^4.17.21",
     "open": "^8.4.2",
     "puppeteer": "^19.7.4",
+    "string-dedent": "^3.0.1",
     "undici": "^5.20.0",
     "yaml": "^2.2.1"
   },
