@@ -236,9 +236,10 @@
 
       function createTr(...args) {
         const [key, value] = args.flat()
+        const [formattedKey, formattedValue] = formatField(key, value)
 
         if (key == "id" || key == "pk") return ""
-        else return `<tr><td>${key}</td><td>${formatField(key, value)}</td></tr>`
+        else return `<tr><td>${formattedKey}</td><td>${formattedValue}</td></tr>`
       }
 
       function createATag(url, title) {
@@ -246,14 +247,21 @@
       }
 
       function formatField(key, value) {
-        return Array.isArray(value)
-          ? value.map(el => formatObjectOrString(key, el)).join("<br>")
-          : formatObjectOrString(key, value)
+        return [
+          key.charAt(0).toUpperCase() + key.slice(1).replaceAll(/_/g, " "),
+          Array.isArray(value)
+            ? value.map(el => formatObjectOrString(key, el)).join("<br>")
+            : formatObjectOrString(key, value),
+        ]
       }
 
       function formatObjectOrString(key, value) {
         if (key == "code") {
           return createATag(`https://www.instagram.com/p/${value}/`, value)
+        }
+
+        if (key == "taken_at") {
+          return new Date(value * 1000).toLocaleString()
         }
 
         if (key == "user" || key == "coauthor_producers" || key == "tagged_user") {
