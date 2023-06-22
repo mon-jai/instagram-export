@@ -2,6 +2,7 @@ import { existsSync } from "fs"
 import { mkdir, readFile, writeFile } from "fs/promises"
 
 import { Command, Flags } from "@oclif/core"
+import { uniqBy } from "lodash-es"
 import YAML from "yaml"
 
 import { DATA_FILE, MEDIA_FOLDER, YAML_CONFIG } from "../lib/constants.js"
@@ -38,7 +39,7 @@ export default class Fetch extends Command {
     const data: DataStore = {
       url,
       download_media,
-      posts: [...postsSavedFromLastRun, ...newPosts.map(postFrom)],
+      posts: uniqBy([...postsSavedFromLastRun, ...newPosts.map(postFrom)], "id"),
     }
 
     if (download_media) {

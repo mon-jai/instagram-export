@@ -2,8 +2,7 @@ import { writeFile } from "fs/promises"
 import { basename, resolve } from "path"
 
 import { Command, Help } from "@oclif/core"
-import { isEmpty, last, startCase } from "lodash-es"
-import { random } from "lodash-es"
+import { isEmpty, last, random, startCase } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
 
