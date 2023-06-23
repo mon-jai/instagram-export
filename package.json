@@ -1,6 +1,6 @@
 {
   "name": "instagram-export",
-  "version": "0.0.0",
+  "version": "0.6.0",
   "description": "Export Instagram profiles and collections to git-ified and version controllable achieves",
   "author": "Loh Ka Hong",
   "bin": {
