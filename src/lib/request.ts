@@ -91,10 +91,10 @@ async function login(page: Page, username: string) {
     .then(() => {
       throw Errors["RATE_LIMIT_REACHED"]
     })
-    // Under normal executions, browser will be closed while this promise is still waiting
-    // thus ProtocolError will be thrown
     .catch(error => {
-      if (error.name != "ProtocolError") throw error
+      // Under normal executions, browser will be closed while this promise is still waiting
+      // thus TargetCloseError will be thrown
+      if (error.name != "TargetCloseError") throw error
     })
 
   // Ask for security code if two-factor authentication is enabled for the account
@@ -185,7 +185,7 @@ async function extractPostsFromAPIResponse(
       // Fetched the whole collection, yet didn't found the last post saved from last run
       resolve(responses)
     } catch (error: any) {
-      if (error.name != "ProtocolError") throw error
+      if (error.name != "TargetCloseError") throw error
     }
   }).then(responses => {
     replaceLine(`Getting posts from Instagram... Done (${responses.length} pages) \n`)
