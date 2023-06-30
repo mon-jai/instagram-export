@@ -203,7 +203,7 @@ export async function fetchNewPosts(
   const username = parseArchiveUrl(collectionUrl).username
 
   const browser = await puppeteer.launch({
-    headless: !openWindow,
+    headless: openWindow ? false : "new",
     userDataDir: userDataDir,
     args: [`--profile-directory=${username}`],
   })
