@@ -15,18 +15,18 @@ export default class Fetch extends Command {
 
   static flags = {
     open: Flags.boolean({ description: "Open Puppeteer in a window", default: false }),
-    "max-page": Flags.integer({ description: "Maximum pages to fetch" }),
+    "max-page": Flags.integer({ description: "Maximum pages to fetch" })
   }
 
   public async run(): Promise<void> {
     const {
-      flags: { open, "max-page": maxPage = Number.MAX_VALUE },
+      flags: { open, "max-page": maxPage = Number.MAX_VALUE }
     } = await this.parse(Fetch)
 
     const {
       url,
       download_media,
-      posts: postsSavedFromLastRun,
+      posts: postsSavedFromLastRun
     }: Partial<DataStore> = YAML.parse(await readFile(DATA_FILE, "utf8"))
 
     if (url === undefined || download_media === undefined || postsSavedFromLastRun === undefined) {
@@ -39,7 +39,7 @@ export default class Fetch extends Command {
     const data: DataStore = {
       url,
       download_media,
-      posts: uniqBy([...postsSavedFromLastRun, ...newPosts.map(postFrom)], "id"),
+      posts: uniqBy([...postsSavedFromLastRun, ...newPosts.map(postFrom)], "id")
     }
 
     if (download_media) {

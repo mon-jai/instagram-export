@@ -16,12 +16,12 @@ export default class View extends Command {
   static description = "View archive in a webpage"
 
   static flags = {
-    port: Flags.integer({ description: "Specify server port", default: 3000 }),
+    port: Flags.integer({ description: "Specify server port", default: 3000 })
   }
 
   public async run(): Promise<void> {
     const {
-      flags: { port },
+      flags: { port }
     } = await this.parse(View)
 
     const mediaFolder = resolve("media")

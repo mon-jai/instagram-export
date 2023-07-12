@@ -15,7 +15,7 @@ import {
   InstagramResponse,
   MediaSource,
   Post,
-  User,
+  User
 } from "./types.js"
 
 // Utility functions
@@ -68,7 +68,7 @@ export function parseArchiveUrl(url: string) {
     username: match.groups.username,
     archiveName: match.groups.collectionName
       ? startCase(match.groups.collectionName.replaceAll("-", " "))
-      : match.groups.username,
+      : match.groups.username
   }
 }
 
@@ -137,7 +137,7 @@ export function postFrom(instagramPost: InstagramPost): Post {
     usertags,
     caption,
     location: instagramLocation,
-    clips_metadata,
+    clips_metadata
   } = instagramPost
 
   const location = pick(instagramLocation, ["pk", "short_name", "name", "address", "city", "lng", "lat"])
@@ -156,7 +156,7 @@ export function postFrom(instagramPost: InstagramPost): Post {
     tagged_user: usertags?.in.map(({ user }) => userFrom(user)) ?? [],
     ...(location !== undefined ? { location } : {}),
     ...(music_info !== undefined ? { music_info } : {}),
-    caption: caption?.text ?? "",
+    caption: caption?.text ?? ""
   }
 }
 
@@ -166,14 +166,14 @@ export function mediaSourceFrom(instagramPost: IWithMedia): MediaSource {
     return {
       code,
       type: "video_versions" in instagramPost ? "video" : "image",
-      url: getMediaUrl(instagramPost),
+      url: getMediaUrl(instagramPost)
     }
   } else {
     const { code, carousel_media } = instagramPost
     return {
       code,
       type: "carousel",
-      urls: carousel_media.map(media => getMediaUrl(media)),
+      urls: carousel_media.map(media => getMediaUrl(media))
     }
   }
 }

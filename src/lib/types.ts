@@ -85,5 +85,5 @@ export enum Errors {
   NO_OVERLAP,
   DOWNLOAD_FAILED,
   // init & fetch
-  INVALID_COLLECTION_URL,
+  INVALID_COLLECTION_URL
 }

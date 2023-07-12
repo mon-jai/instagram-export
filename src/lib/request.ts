@@ -17,7 +17,7 @@ import {
   instagramPostsFrom,
   parseArchiveUrl,
   randomDelay,
-  replaceLine,
+  replaceLine
 } from "./utils.js"
 
 async function readAndInputVerificationCode(page: Page) {
@@ -60,13 +60,13 @@ async function readAndInputVerificationCode(page: Page) {
             page.waitForResponse(
               response => new URL(response.url()).pathname == "/api/v1/web/accounts/login/ajax/two_factor/"
             ),
-            page.click("form > div:nth-child(2) > button"),
+            page.click("form > div:nth-child(2) > button")
           ])
         )[0]
 
         if (authenticationResponse.status() == 200) return true
         else return "Wrong verification code."
-      },
+      }
     })
   })
 }
@@ -205,7 +205,7 @@ export async function fetchNewPosts(
   const browser = await puppeteer.launch({
     headless: openWindow ? false : "new",
     userDataDir: userDataDir,
-    args: [`--profile-directory=${username}`],
+    args: [`--profile-directory=${username}`]
   })
 
   const page = await browser.newPage()

@@ -34,9 +34,9 @@ export default class Init extends Command {
           } catch (error) {
             return false
           }
-        },
+        }
       },
-      { name: "download_media", message: "Download media?", type: "confirm", default: true },
+      { name: "download_media", message: "Download media?", type: "confirm", default: true }
     ])
 
     const data: DataStore = { url, download_media, posts: [] }

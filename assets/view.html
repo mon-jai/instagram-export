@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -255,7 +255,7 @@
           key.charAt(0).toUpperCase() + key.slice(1).replaceAll(/_/g, " "),
           Array.isArray(value)
             ? value.map(el => formatObjectOrString(key, el)).join("<br>")
-            : formatObjectOrString(key, value),
+            : formatObjectOrString(key, value)
         ]
       }
 
@@ -299,7 +299,7 @@
             posts,
             activePost: posts[0],
             mediaPaths: { mediaPaths },
-            observer: new IntersectionObserver(observerCallback),
+            observer: new IntersectionObserver(observerCallback)
           }
         },
         computed: {
@@ -308,7 +308,7 @@
           },
           activePostMedias() {
             return this.mediaPaths[this.activePost.code]
-          },
+          }
         },
         methods: {
           initObserver() {
@@ -318,7 +318,7 @@
           },
           isImage(media) {
             return media.endsWith(".jpg") || media.endsWith(".webp")
-          },
+          }
         },
         mounted() {
           this.swiper = new Swiper(".swiper", {
@@ -326,7 +326,7 @@
             grabCursor: true,
             modules: [Navigation, Pagination],
             navigation: true,
-            pagination: true,
+            pagination: true
           })
           this.initObserver()
         },
@@ -335,7 +335,7 @@
           this.swiper.slideTo(0, 0)
           this.observer.disconnect()
           this.initObserver()
-        },
+        }
       }).mount("#app")
     </script>
   </body>
