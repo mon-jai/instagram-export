@@ -32,7 +32,7 @@ DESCRIPTION
   Fetch Instagram for new posts of an archive
 ```
 
-_See code: [dist/commands/fetch.ts](https://github.com/mon-jai/instagram-export/blob/v0.6.0/dist/commands/fetch.ts)_
+_See code: [dist/commands/fetch.ts](https://github.com/mon-jai/instagram-export/blob/v0.8.0/dist/commands/fetch.ts)_
 
 ## `instagram-export init`
 
@@ -51,7 +51,7 @@ DESCRIPTION
   https://instagram.com/{username}/saved/{collection_name}/{collection_id}/
 ```
 
-_See code: [dist/commands/init.ts](https://github.com/mon-jai/instagram-export/blob/v0.6.0/dist/commands/init.ts)_
+_See code: [dist/commands/init.ts](https://github.com/mon-jai/instagram-export/blob/v0.8.0/dist/commands/init.ts)_
 
 ## `instagram-export view`
 
@@ -68,6 +68,6 @@ DESCRIPTION
   View archive in a webpage
 ```
 
-_See code: [dist/commands/view.ts](https://github.com/mon-jai/instagram-export/blob/v0.6.0/dist/commands/view.ts)_
+_See code: [dist/commands/view.ts](https://github.com/mon-jai/instagram-export/blob/v0.8.0/dist/commands/view.ts)_
 
 <!-- commandsstop -->
