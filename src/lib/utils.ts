@@ -161,19 +161,19 @@ export function postFrom(instagramPost: InstagramPost): Post {
 }
 
 export function mediaSourceFrom(instagramPost: IWithMedia): MediaSource {
-  if ("image_versions2" in instagramPost) {
-    const { code } = instagramPost
-    return {
-      code,
-      type: "video_versions" in instagramPost ? "video" : "image",
-      url: getMediaUrl(instagramPost)
-    }
-  } else {
+  if ("carousel_media" in instagramPost) {
     const { code, carousel_media } = instagramPost
     return {
       code,
       type: "carousel",
       urls: carousel_media.map(media => getMediaUrl(media))
+    }
+  } else {
+    const { code } = instagramPost
+    return {
+      code,
+      type: "video_versions" in instagramPost ? "video" : "image",
+      url: getMediaUrl(instagramPost)
     }
   }
 }

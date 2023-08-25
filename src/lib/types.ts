@@ -52,15 +52,7 @@ export type IWithMediaURL = ReadonlyDeep<{
   video_versions?: VideoVersion[]
 }>
 
-export type IWithMedia = ReadonlyDeep<
-  { code: string } & (
-    | {
-        image_versions2: ImageVersions2
-        video_versions?: VideoVersion[]
-      }
-    | { carousel_media: CarouselMedia[] }
-  )
->
+export type IWithMedia = ReadonlyDeep<{ code: string; carousel_media: CarouselMedia[] } & Partial<IWithMediaURL>>
 
 // The structure of the output data file
 export type DataStore = ReadonlyDeep<{ url: string; download_media: boolean; posts: Post[] }>
