@@ -22,11 +22,12 @@ Fetch Instagram for new posts of an archive
 
 ```
 USAGE
-  $ instagram-export fetch [--open] [--max-page <value>]
+  $ instagram-export fetch [--open] [--refetch] [--max-page <value>]
 
 FLAGS
   --max-page=<value>  Maximum pages to fetch
   --open              Open Puppeteer in a window
+  --refetch           Re-fetch the whole collection and update existing posts
 
 DESCRIPTION
   Fetch Instagram for new posts of an archive

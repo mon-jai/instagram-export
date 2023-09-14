@@ -15,12 +15,14 @@ export default class Fetch extends Command {
 
   static flags = {
     open: Flags.boolean({ description: "Open Puppeteer in a window", default: false }),
+    refetch: Flags.boolean({ description: "Re-fetch the whole collection and update existing posts", default: false }),
+    // We do not define a default value here to avoid oclif including it in the help message.
     "max-page": Flags.integer({ description: "Maximum pages to fetch" })
   }
 
   public async run(): Promise<void> {
     const {
-      flags: { open, "max-page": maxPage = Number.MAX_VALUE }
+      flags: { open, "max-page": maxPage = Number.MAX_VALUE, refetch: refetchCollection }
     } = await this.parse(Fetch)
 
     const {
@@ -35,17 +37,24 @@ export default class Fetch extends Command {
 
     const startTime = Date.now()
 
-    const newPosts = await fetchNewPosts(url, postsSavedFromLastRun, open, maxPage)
+    const newInstagramPosts = await fetchNewPosts(url, refetchCollection ? [] : postsSavedFromLastRun, open, maxPage)
+    const newPosts = newInstagramPosts
+      .map(postFrom)
+      .filter(post => postsSavedFromLastRun.find(oldPost => post.pk == oldPost.pk) == undefined)
+    const oldPosts = postsSavedFromLastRun.map(
+      savedPost => newPosts.find(newPost => newPost.pk == savedPost.pk) ?? savedPost
+    )
+
     const data: DataStore = {
       url,
       download_media,
-      posts: uniqBy([...postsSavedFromLastRun, ...newPosts.map(postFrom)], "id")
+      posts: uniqBy([...oldPosts, ...newPosts], "id")
     }
 
     if (download_media) {
       if (!existsSync(MEDIA_FOLDER)) await mkdir(MEDIA_FOLDER)
 
-      const mediaSources = (newPosts as IWithMedia[]).map(mediaSourceFrom)
+      const mediaSources = (newInstagramPosts as IWithMedia[]).map(media => mediaSourceFrom(media, download_media))
       await downloadMedias(mediaSources)
     }
 
@@ -57,7 +66,7 @@ export default class Fetch extends Command {
     )
 
     console.log(
-      `\nFetched ${newPosts.length} new posts${download_media ? " and media " : " "}` +
+      `\nFetched ${newInstagramPosts.length} new posts${download_media ? " and media " : " "}` +
         `in ${(Date.now() - startTime) / 1000} seconds`
     )
   }
