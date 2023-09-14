@@ -52,10 +52,16 @@ export type IWithMediaURL = ReadonlyDeep<{
   video_versions?: VideoVersion[]
 }>
 
-export type IWithMedia = ReadonlyDeep<{ code: string; carousel_media: CarouselMedia[] } & Partial<IWithMediaURL>>
+export type IWithMedia = ReadonlyDeep<{ code: string; carousel_media: CarouselMedia[] } & IWithMediaURL>
+
+export enum DownloadOption {
+  "all" = "all",
+  "thumbnail" = "thumbnail",
+  "none" = "none"
+}
 
 // The structure of the output data file
-export type DataStore = ReadonlyDeep<{ url: string; download_media: boolean; posts: Post[] }>
+export type DataStore = ReadonlyDeep<{ url: string; download_media: DownloadOption; posts: Post[] }>
 
 // The structure used for downloading medias from Instagram
 export type MediaSource = ReadonlyDeep<

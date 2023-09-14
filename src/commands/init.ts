@@ -7,7 +7,7 @@ import dedent from "string-dedent"
 import YAML from "yaml"
 
 import { DATA_FILE, DATA_FILENAME, YAML_CONFIG } from "../lib/constants.js"
-import { DataStore, Errors } from "../lib/types.js"
+import { DataStore, DownloadOption, Errors } from "../lib/types.js"
 import { parseArchiveUrl } from "../lib/utils.js"
 
 export default class Init extends Command {
@@ -23,7 +23,7 @@ export default class Init extends Command {
   public async run(): Promise<void> {
     if (existsSync(DATA_FILE)) throw Errors.DATA_FILE_ALREADY_EXISTS
 
-    const { url, download_media } = await inquirer.prompt<{ url: string; download_media: boolean }>([
+    const { url, download_media } = await inquirer.prompt<{ url: string; download_media: DownloadOption }>([
       {
         name: "url",
         message: "Url of collection:",
@@ -36,7 +36,12 @@ export default class Init extends Command {
           }
         }
       },
-      { name: "download_media", message: "Download media?", type: "confirm", default: true }
+      {
+        name: "download_media",
+        message: `Whether to download media. Valid values: ${Object.keys(DownloadOption).join(", ")}`,
+        default: "all",
+        validate: input => input in DownloadOption
+      }
     ])
 
     const data: DataStore = { url, download_media, posts: [] }

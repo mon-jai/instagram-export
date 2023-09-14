@@ -8,6 +8,7 @@ import { fetch } from "undici"
 
 import Init from "../commands/init.js"
 import {
+  DownloadOption,
   Errors,
   IWithMedia,
   IWithMediaURL,
@@ -160,13 +161,20 @@ export function postFrom(instagramPost: InstagramPost): Post {
   }
 }
 
-export function mediaSourceFrom(instagramPost: IWithMedia): MediaSource {
-  if ("carousel_media" in instagramPost) {
+export function mediaSourceFrom(instagramPost: IWithMedia, downloadOption: DownloadOption): MediaSource {
+  if ("carousel_media" in instagramPost && downloadOption != "thumbnail") {
     const { code, carousel_media } = instagramPost
     return {
       code,
       type: "carousel",
       urls: carousel_media.map(media => getMediaUrl(media))
+    }
+  } else if (downloadOption == "thumbnail") {
+    const { code, image_versions2 } = instagramPost
+    return {
+      code: code,
+      type: "image",
+      url: getMediaUrl({ image_versions2 })
     }
   } else {
     const { code } = instagramPost
