@@ -63,8 +63,7 @@ export function parseArchiveUrl(url: string) {
     pathname.match(/^\/(?<username>[A-Za-z0-9._-]+)\/saved\/(?<collectionName>all-posts)\/?$/) ??
     pathname.match(/^\/(?<username>[A-Za-z0-9._-]+)\/saved\/(?<collectionName>[^\/]+)\/\d+\/?$/)
 
-  if (match === null || match.groups === undefined) throw Errors.INVALID_COLLECTION_URL
-
+  if (match == null || match.groups == undefined) throw Errors.INVALID_COLLECTION_URL
   return {
     username: match.groups.username,
     archiveName: match.groups.collectionName
@@ -116,7 +115,7 @@ export function findFirstNewPostIndex(
 export async function download(url: string, path: string, filename: string = basename(new URL(url).pathname)) {
   const response = await fetch(url)
 
-  if (response.body === null) throw Errors.DOWNLOAD_FAILED
+  if (response.body == null) throw Errors.DOWNLOAD_FAILED
 
   await writeFile(resolve(path, filename), response.body)
 }
