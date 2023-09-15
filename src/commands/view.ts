@@ -59,12 +59,10 @@ export default class View extends Command {
         response.end()
       }
 
-      if (request.url === null || request.url === undefined || request.url == "") {
-        return404()
-      } else if (request.url == "/" || request.url == "index.html") {
+      if (request.url == "/" || request.url == "index.html") {
         response.end(html)
       } else {
-        const filePath = resolve(mediaFolder, request.url.replace(/^\//, ""))
+        const filePath = resolve(mediaFolder, request.url!.replace(/^\//, ""))
 
         if (existsSync(filePath)) createReadStream(filePath).pipe(response)
         else return404()
