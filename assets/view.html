@@ -272,7 +272,7 @@
           const { username, full_name } = value
           return createATag(
             `https://instagram.com/${username}/`,
-            full_name !== undefined ? `${full_name} (${username})` : username
+            full_name !== undefined && full_name.length !== 0 ? `${full_name} (${username})` : username
           )
         }
 
