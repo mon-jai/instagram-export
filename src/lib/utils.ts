@@ -30,7 +30,7 @@ function pick<T, K extends keyof T>(object: T | null | undefined, includedKeys: 
   // Maintain ordering of keys
   for (const key of includedKeys) {
     const value = object[key]
-    if (!isNullableOrEmpty(value)) result[key] = value
+    if (!isNullableOrEmpty(value) && !(typeof value == "string" && value.length == 0)) result[key] = value
   }
 
   return result
