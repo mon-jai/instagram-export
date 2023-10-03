@@ -21,28 +21,28 @@
   "dependencies": {
     "@oclif/core": "^2",
     "@oclif/plugin-help": "^5",
-    "@oclif/plugin-plugins": "^3.1.6",
+    "@oclif/plugin-plugins": "^3.8.3",
     "async": "^3.2.4",
-    "inquirer": "^9.2.7",
+    "inquirer": "^9.2.11",
     "lodash-es": "^4.17.21",
     "open": "^9.1.0",
-    "puppeteer": "^20.8.1",
+    "puppeteer": "^21.3.6",
     "string-dedent": "^3.0.1",
-    "undici": "^5.22.1",
-    "yaml": "^2.3.1"
+    "undici": "^5.25.3",
+    "yaml": "^2.3.2"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.2.0",
-    "@types/async": "^3.2.20",
+    "@types/async": "^3.2.21",
     "@types/inquirer": "^9.0.3",
-    "@types/lodash-es": "^4.17.7",
-    "@types/node": "^20.4.1",
+    "@types/lodash-es": "^4.17.9",
+    "@types/node": "^20.8.2",
     "oclif": "^3",
-    "prettier": "^3.0.0",
+    "prettier": "^3.0.3",
     "shx": "^0.3.4",
-    "ts-unused-exports": "^9.0.5",
-    "type-fest": "^3.13.0",
-    "typescript": "^5.1.6"
+    "ts-unused-exports": "^10.0.1",
+    "type-fest": "^4.3.3",
+    "typescript": "^5.2.2"
   },
   "oclif": {
     "bin": "instagram-export",
