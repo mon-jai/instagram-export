@@ -56,7 +56,7 @@
     "build": "shx rm -rf dist && ts-unused-exports ./tsconfig.json --excludePathsFromReport=commands && tsc -b",
     "dev": "tsc --watch",
     "postpack": "shx rm -f oclif.manifest.json",
-    "prepack": "npm run build && oclif manifest && oclif readme && npm run format",
+    "prepack": "npm run build && oclif manifest && npm run format",
     "version": "oclif readme && prettier --write README.md && git add README.md",
     "format": "prettier --write ."
   },
