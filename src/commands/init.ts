@@ -1,14 +1,12 @@
 import { existsSync } from "fs"
-import { writeFile } from "fs/promises"
 
 import { Command } from "@oclif/core"
 import inquirer from "inquirer"
 import dedent from "string-dedent"
-import YAML from "yaml"
 
-import { DATA_FILE, DATA_FILENAME, YAML_CONFIG } from "../lib/constants.js"
+import { DATA_FILE, DATA_FILENAME } from "../lib/constants.js"
 import { DataStore, DownloadOption, Errors } from "../lib/types.js"
-import { parseArchiveUrl } from "../lib/utils.js"
+import { parseArchiveUrl, writeData } from "../lib/utils.js"
 
 export default class Init extends Command {
   static description = dedent`
@@ -46,7 +44,7 @@ export default class Init extends Command {
 
     const data: DataStore = { url, download_media, posts: [] }
 
-    await writeFile(DATA_FILE, YAML.stringify(data, null, YAML_CONFIG))
+    await writeData(data)
   }
 
   async catch(error: any) {

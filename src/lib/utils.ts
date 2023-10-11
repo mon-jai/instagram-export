@@ -5,9 +5,12 @@ import { Command, Help } from "@oclif/core"
 import { isEmpty, last, random, startCase } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
+import YAML from "yaml"
 
 import Init from "../commands/init.js"
+import { DATA_FILE } from "./constants.js"
 import {
+  DataStore,
   DownloadOption,
   Errors,
   IWithMedia,
@@ -36,6 +39,12 @@ function pick<T, K extends keyof T>(object: T | null | undefined, includedKeys: 
   return result
 }
 
+function isNullableOrEmpty(value: any) {
+  // Include primitive values and discard empty arrays/objects
+  // https://github.com/lodash/lodash/issues/3523#issuecomment-347555398
+  return typeof value == "object" && isEmpty(value)
+}
+
 function getMediaUrl(media: IWithMediaURL) {
   if ("video_versions" in media) {
     return media.video_versions[0].url
@@ -55,6 +64,14 @@ export function replaceLine(message: string) {
   process.stdout.write(message)
 }
 
+export function isValidDataStore(data: Partial<DataStore>): asserts data is DataStore {
+  const { url, download_media, posts } = data
+
+  if (url === undefined || download_media === undefined || posts === undefined) {
+    throw Errors["NOT_INITIALIZED"]
+  }
+}
+
 export function parseArchiveUrl(url: string) {
   const pathname = new URL(url).pathname
 
@@ -70,12 +87,6 @@ export function parseArchiveUrl(url: string) {
       ? startCase(match.groups.collectionName.replaceAll("-", " "))
       : match.groups.username
   }
-}
-
-export function isNullableOrEmpty(value: any) {
-  // Include primitive values and discard empty arrays/objects
-  // https://github.com/lodash/lodash/issues/3523#issuecomment-347555398
-  return typeof value == "object" && isEmpty(value)
 }
 
 export async function printNotInitializedMessage(command: Command) {
@@ -118,6 +129,17 @@ export async function download(url: string, path: string, filename: string = bas
   if (response.body == null) throw Errors.DOWNLOAD_FAILED
 
   await writeFile(resolve(path, filename), response.body)
+}
+
+export async function writeData(data: DataStore) {
+  const yamlString = YAML.stringify(data, (_key, value) => (isNullableOrEmpty(value) ? undefined : value), {
+    blockQuote: "literal",
+    collectionStyle: "block"
+  })
+    .replace(/^  /gm, "")
+    .replace(/^-/gm, "\n-")
+
+  await writeFile(DATA_FILE, yamlString)
 }
 
 // Casting functions
