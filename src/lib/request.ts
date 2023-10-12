@@ -197,7 +197,7 @@ async function extractPostsFromAPIResponse(
       // Wait until all posts are loaded (hence the spinner is removed from DOM)
       // There are two spinner elements that will be mounted to DOM
       // both of them are indirect children of `main` but only the second one get mounted is a indirect child of `article`
-      await page.waitForSelector('article [data-visualcompletion="loading-state"]', { hidden: true })
+      await page.waitForSelector('article [data-visualcompletion="loading-state"]', { hidden: true, timeout: 0 })
 
       // Fetched the whole collection, yet didn't found the last post saved from last run
       resolve(responses)
@@ -222,7 +222,10 @@ export async function fetchNewPosts(
   const browser = await puppeteer.launch({
     headless: openWindow ? false : "new",
     userDataDir: userDataDir,
-    args: [`--profile-directory=${username}`]
+    args: [`--profile-directory=${username}`],
+    // ProtocolError: ... Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.
+    // https://github.com/puppeteer/puppeteer/issues/9927#issuecomment-1486670812
+    protocolTimeout: 0
   })
 
   const page = await browser.newPage()
