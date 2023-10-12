@@ -5,7 +5,7 @@ import { URL, fileURLToPath } from "url"
 
 import { queue, retry } from "async"
 import inquirer from "inquirer"
-import { last } from "lodash-es"
+import { last, random } from "lodash-es"
 import puppeteer, { Page } from "puppeteer"
 import { ReadonlyDeep } from "type-fest"
 
@@ -17,7 +17,8 @@ import {
   instagramPostsFrom,
   parseArchiveUrl,
   randomDelay,
-  replaceLine
+  replaceLine,
+  sleep
 } from "./utils.js"
 
 async function readAndInputVerificationCode(page: Page) {
@@ -111,6 +112,21 @@ async function login(page: Page, username: string) {
   console.log("Logging in... Done")
 }
 
+async function scrollToBottomInfinitely(page: Page) {
+  try {
+    while (true) {
+      await page.mouse.wheel({ deltaY: 120 })
+
+      // If the page is scrolled to the bottom
+      if (await page.evaluate(() => window.scrollY == document.documentElement.scrollHeight - window.innerHeight)) {
+        await sleep(random(3000, 5000))
+      } else {
+        await sleep(random(20, 50))
+      }
+    }
+  } catch {}
+}
+
 async function extractPostsFromAPIResponse(
   page: Page,
   collectionUrl: string,
@@ -176,7 +192,8 @@ async function extractPostsFromAPIResponse(
       // Spinner might not be mounted to DOM if the collection has too few items therefore looking for it may stuck the crawler
       await page.waitForSelector("main article a img")
       // Scroll to bottom to load old posts
-      await page.evaluate(() => setInterval(() => window.scrollTo(0, document.body.scrollHeight), 10))
+      scrollToBottomInfinitely(page)
+
       // Wait until all posts are loaded (hence the spinner is removed from DOM)
       // There are two spinner elements that will be mounted to DOM
       // both of them are indirect children of `main` but only the second one get mounted is a indirect child of `article`

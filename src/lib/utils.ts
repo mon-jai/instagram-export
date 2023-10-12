@@ -57,6 +57,10 @@ export function randomDelay() {
   return 100 + random(0, 150)
 }
 
+export async function sleep(duration: number) {
+  return new Promise(resolve => setTimeout(resolve, duration))
+}
+
 export function replaceLine(message: string) {
   // https://stackoverflow.com/a/59805130
   process.stdout.clearLine(-1)
