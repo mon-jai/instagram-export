@@ -44,7 +44,7 @@ export default class Init extends Command {
 
     const data: DataStore = { url, download_media, posts: [] }
 
-    await writeData(data)
+    await writeData(data, false)
   }
 
   async catch(error: any) {

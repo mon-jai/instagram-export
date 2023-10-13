@@ -135,11 +135,12 @@ export async function download(url: string, path: string, filename: string = bas
   await writeFile(resolve(path, filename), response.body)
 }
 
-export async function writeData(data: DataStore) {
-  const yamlString = YAML.stringify(data, (_key, value) => (isNullableOrEmpty(value) ? undefined : value), {
-    blockQuote: "literal",
-    collectionStyle: "block"
-  })
+export async function writeData(data: DataStore, checkForEmptyValue = true) {
+  const yamlString = YAML.stringify(
+    data,
+    checkForEmptyValue ? (_key, value) => (isNullableOrEmpty(value) ? undefined : value) : null,
+    { blockQuote: "literal", collectionStyle: "block" }
+  )
     .replace(/^  /gm, "")
     .replace(/^-/gm, "\n-")
 
