@@ -41,7 +41,9 @@ export default class View extends Command {
               if (mediaFiles.includes(post.code) && (await lstat(postFolder)).isDirectory()) {
                 medias = (await readdir(postFolder)).map(file => `${post.code}/${file}`)
               } else {
-                const mediaFile = mediaFiles.find(file => file.startsWith(post.code))
+                const mediaFile =
+                  mediaFiles.find(file => file == `${post.code}.mp4`) ??
+                  mediaFiles.find(file => file.startsWith(post.code))
                 medias = mediaFile !== undefined ? [mediaFile] : []
               }
 
