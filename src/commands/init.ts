@@ -5,7 +5,7 @@ import inquirer from "inquirer"
 import dedent from "string-dedent"
 
 import { DATA_FILE, DATA_FILENAME } from "../lib/constants.js"
-import { DataStore, DownloadOption, Errors } from "../lib/types.js"
+import { DataStore, Errors, MediaDownloadOption } from "../lib/types.js"
 import { parseArchiveUrl, writeData } from "../lib/utils.js"
 
 export default class Init extends Command {
@@ -21,7 +21,7 @@ export default class Init extends Command {
   public async run(): Promise<void> {
     if (existsSync(DATA_FILE)) throw Errors.DATA_FILE_ALREADY_EXISTS
 
-    const { url, download_media } = await inquirer.prompt<{ url: string; download_media: DownloadOption }>([
+    const { url, download_media } = await inquirer.prompt<{ url: string; download_media: MediaDownloadOption }>([
       {
         name: "url",
         message: "Url of collection:",
@@ -36,9 +36,9 @@ export default class Init extends Command {
       },
       {
         name: "download_media",
-        message: `Whether to download media. Valid values: ${Object.keys(DownloadOption).join(", ")}`,
+        message: `Whether to download media. Valid values: ${Object.keys(MediaDownloadOption).join(", ")}`,
         default: "all",
-        validate: input => input in DownloadOption
+        validate: input => input in MediaDownloadOption
       }
     ])
 

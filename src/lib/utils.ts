@@ -11,12 +11,12 @@ import Init from "../commands/init.js"
 import { DATA_FILE } from "./constants.js"
 import {
   DataStore,
-  DownloadOption,
   Errors,
   IWithMedia,
   IWithMediaURL,
   InstagramPost,
   InstagramResponse,
+  MediaDownloadOption,
   MediaSource,
   Post,
   User
@@ -53,8 +53,8 @@ function getMediaUrl(media: IWithMediaURL) {
   }
 }
 
-export function randomDelay() {
-  return 100 + random(0, 150)
+export function randomTypingDelay() {
+  return random(100, 250)
 }
 
 export async function sleep(duration: number) {
@@ -187,20 +187,20 @@ export function postFrom(instagramPost: InstagramPost): Post {
   }
 }
 
-export function mediaSourceFrom(instagramPost: IWithMedia, downloadOption: DownloadOption): MediaSource {
-  if ("carousel_media" in instagramPost && downloadOption != "thumbnail") {
-    const { code, carousel_media } = instagramPost
-    return {
-      code,
-      type: "carousel",
-      urls: carousel_media.map(media => getMediaUrl(media))
-    }
-  } else if (downloadOption == "thumbnail") {
+export function mediaSourceFrom(instagramPost: IWithMedia, downloadOption: MediaDownloadOption): MediaSource {
+  if (downloadOption == "thumbnail") {
     const { code, image_versions2 } = instagramPost
     return {
       code: code,
       type: "image",
       url: getMediaUrl({ image_versions2 })
+    }
+  } else if ("carousel_media" in instagramPost) {
+    const { code, carousel_media } = instagramPost
+    return {
+      code,
+      type: "carousel",
+      urls: carousel_media.map(media => getMediaUrl(media))
     }
   } else {
     const { code } = instagramPost

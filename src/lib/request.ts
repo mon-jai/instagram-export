@@ -16,7 +16,7 @@ import {
   findFirstNewPostIndex,
   instagramPostsFrom,
   parseArchiveUrl,
-  randomDelay,
+  randomTypingDelay,
   replaceLine,
   sleep
 } from "./utils.js"
@@ -52,9 +52,9 @@ async function readAndInputVerificationCode(page: Page) {
         // Clear previous input, https://stackoverflow.com/a/52633235
         await page.click(verificationCodeInputSelector)
         while ((await page.$eval(verificationCodeInputSelector, el => el.value.length)) > 0) {
-          await page.keyboard.press("Backspace", { delay: randomDelay() })
+          await page.keyboard.press("Backspace", { delay: randomTypingDelay() })
         }
-        await page.type(verificationCodeInputSelector, verificationCode, { delay: randomDelay() })
+        await page.type(verificationCodeInputSelector, verificationCode, { delay: randomTypingDelay() })
 
         const authenticationResponse = (
           await Promise.all([
@@ -80,8 +80,8 @@ async function login(page: Page, username: string) {
   ).password as string
 
   // Already in login page
-  await page.type('input[name="username"]', username, { delay: randomDelay() })
-  await page.type('input[name="password"]', password, { delay: randomDelay() })
+  await page.type('input[name="username"]', username, { delay: randomTypingDelay() })
+  await page.type('input[name="password"]', password, { delay: randomTypingDelay() })
   // Register waitForNavigation() first, then trigger navigation
   await Promise.all([page.waitForNavigation(), page.click('button[type="submit"]')])
 
@@ -170,19 +170,17 @@ async function extractPostsFromAPIResponse(
           resolve(responses)
         }
 
-        // If this is not the first run
-        if (postsSavedFromLastRun.length != 0) {
-          // The promise exits here
-          // if we found the last 10 posts saved from last run
-          // in order to avoid unnecessarily fetching posts that are already saved to the data file
-          if (
-            last10SavedPostPk.find(lastSavedPostPk =>
-              // https://github.com/microsoft/TypeScript/issues/44373, https://github.com/microsoft/TypeScript/issues/36390#issuecomment-641718624
-              (json.items as any[]).find(post => (post.media?.pk ?? post.pk) == lastSavedPostPk)
-            )
-          ) {
-            resolve(responses)
-          }
+        if (
+          // If this is not the first run, and
+          postsSavedFromLastRun.length != 0 &&
+          // We found one of the last 10 posts saved from the last run
+          // https://github.com/microsoft/TypeScript/issues/44373, https://github.com/microsoft/TypeScript/issues/36390#issuecomment-641718624
+          last10SavedPostPk.find(lastSavedPostPk =>
+            (json.items as any[]).find(post => (post.media?.pk ?? post.pk) == lastSavedPostPk)
+          )
+        ) {
+          // Avoid unnecessarily fetching posts that have already been saved to the data file.
+          resolve(responses)
         }
       })
 

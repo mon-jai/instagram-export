@@ -54,14 +54,14 @@ export type IWithMediaURL = ReadonlyDeep<{
 
 export type IWithMedia = ReadonlyDeep<{ code: string; carousel_media: CarouselMedia[] } & IWithMediaURL>
 
-export enum DownloadOption {
+export enum MediaDownloadOption {
   "all" = "all",
   "thumbnail" = "thumbnail",
   "none" = "none"
 }
 
 // The structure of the output data file
-export type DataStore = ReadonlyDeep<{ url: string; download_media: DownloadOption; posts: Post[] }>
+export type DataStore = ReadonlyDeep<{ url: string; download_media: MediaDownloadOption; posts: Post[] }>
 
 // The structure used for downloading medias from Instagram
 export type MediaSource = ReadonlyDeep<
