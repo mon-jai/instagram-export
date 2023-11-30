@@ -253,8 +253,7 @@ export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) 
   const downloadQueue = queue<MediaSource>(async media => {
     return retry(10, async () => {
       if (media.type == "image" || media.type == "video") {
-        const filename = `${media.code}.${media.type == "image" ? "jpg" : "mp4"}`
-        await download(media.url, MEDIA_FOLDER, filename)
+        await download(media.url, MEDIA_FOLDER, media.code)
       } else {
         const destination = resolve(MEDIA_FOLDER, media.code)
         if (!existsSync(destination)) await mkdir(destination)
