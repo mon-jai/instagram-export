@@ -16,7 +16,7 @@ export default class View extends Command {
   static description = "View archive in a webpage"
 
   static flags = {
-    port: Flags.integer({ description: "Specify server port", default: 3000 })
+    port: Flags.integer({ description: "Specify server port", default: 80 })
   }
 
   public async run(): Promise<void> {
@@ -70,7 +70,7 @@ export default class View extends Command {
         else return404()
       }
     }).listen(port, async () => {
-      const url = `http://localhost:${port}/`
+      const url = `http://localhost${port != 80 ? ":" + port : ""}/`
 
       console.log(`View collection at: ${url}`)
       await open(url)
