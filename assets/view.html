@@ -319,7 +319,9 @@
             }
           },
           isImage(media) {
-            return media.endsWith(".jpg") || media.endsWith(".webp") || media.endsWith(".heic")
+            return (
+              media.endsWith(".jpg") || media.endsWith(".jpeg") || media.endsWith(".webp") || media.endsWith(".heic")
+            )
           }
         },
         mounted() {
