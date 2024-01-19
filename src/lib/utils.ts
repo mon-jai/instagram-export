@@ -1,4 +1,4 @@
-import { writeFile } from "fs/promises"
+import { mkdir, writeFile } from "fs/promises"
 import { basename, resolve } from "path"
 
 import { Command, Help } from "@oclif/core"
@@ -132,6 +132,8 @@ export async function download(url: string, path: string, filename: string = bas
   if (response.body == null) throw Errors.DOWNLOAD_FAILED
 
   if (!filename.includes(".")) filename = `${filename}.${response.headers.get("Content-Type")!.split("/").pop()!}`
+
+  await mkdir(path, { recursive: true })
   await writeFile(resolve(path, filename), response.body)
 }
 
