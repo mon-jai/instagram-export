@@ -78,10 +78,11 @@ View archive in a webpage
 
 ```
 USAGE
-  $ instagram-export view [--port <value>]
+  $ instagram-export view [--dev] [--port <value>]
 
 FLAGS
-  --port=<value>  [default: 3000] Specify server port
+  --dev           Use `src/view.html` instead of downloaded assets
+  --port=<value>  [default: 80] Specify server port
 
 DESCRIPTION
   View archive in a webpage

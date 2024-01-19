@@ -2,26 +2,28 @@ import { once } from "events"
 import { createReadStream, existsSync } from "fs"
 import { readFile } from "fs/promises"
 import { createServer } from "http"
+import { resolve } from "path"
 
 import { Command, Flags } from "@oclif/core"
 import open from "open"
 import YAML from "yaml"
 
-import { DATA_FILE, MEDIA_DIRECTORY_NAME } from "../lib/constants.js"
+import { ASSETS_PATH, DATA_FILE, MEDIA_DIRECTORY_NAME } from "../lib/constants.js"
 import { DataStore } from "../lib/types.js"
-import { archiveInfoFrom, getMediaPaths, printNotInitializedMessage } from "../lib/utils.js"
+import { archiveInfoFrom, getMediaPaths, isJavaScriptFile, printNotInitializedMessage } from "../lib/utils.js"
 import generateViewHTML from "../lib/view-html.js"
 
 export default class View extends Command {
   static description = "View archive in a webpage"
 
   static flags = {
+    dev: Flags.boolean({ description: "Use `src/view.html` instead of downloaded assets", default: false }),
     port: Flags.integer({ description: "Specify server port", default: 80 })
   }
 
   public async run(): Promise<void> {
     const {
-      flags: { port }
+      flags: { dev, port }
     } = await this.parse(View)
 
     const { url, posts: postsSortedByOldest } = YAML.parse(await readFile(DATA_FILE, "utf8")) as DataStore
@@ -29,7 +31,7 @@ export default class View extends Command {
     const { archiveName } = archiveInfoFrom(url)
     const posts = Array.from(postsSortedByOldest).reverse()
     const mediaPaths = await getMediaPaths(postsSortedByOldest)
-    const html = await generateViewHTML({ archiveName, posts, mediaPaths })
+    const html = await generateViewHTML({ archiveName, posts, mediaPaths, dev })
 
     const server = createServer((request, response) => {
       if (request.url == "/") {
@@ -40,6 +42,13 @@ export default class View extends Command {
       const filePath = request.url!.replace(/^\//, "")
       if (filePath.startsWith(MEDIA_DIRECTORY_NAME) && existsSync(filePath)) {
         createReadStream(filePath).pipe(response)
+        return
+      }
+
+      const assetFilePath = resolve(ASSETS_PATH, filePath)
+      if (existsSync(assetFilePath)) {
+        if (isJavaScriptFile(assetFilePath)) response.setHeader("Content-Type", "application/javascript")
+        createReadStream(assetFilePath).pipe(response)
         return
       }
 

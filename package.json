@@ -57,6 +57,7 @@
   "scripts": {
     "prepack": "npm run build && oclif manifest && npm run format -- --ignore-path",
     "postpack": "shx rm -f oclif.manifest.json",
+    "postinstall": "node dist/scripts/download-assets.js",
     "version": "oclif readme && prettier --write README.md && git add README.md",
     "build": "shx rm -rf dist && ts-unused-exports ./tsconfig.json --excludePathsFromReport=commands && tsc -b",
     "dev": "tsc --watch",
