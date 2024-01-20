@@ -2,13 +2,16 @@ import { mkdir, writeFile } from "fs/promises"
 import { basename, resolve } from "path"
 
 import { Command, Help } from "@oclif/core"
+import { IDataHeaderOrder } from "@ulixee/default-browser-emulator/interfaces/IBrowserData.js"
+import _DataLoader from "@ulixee/default-browser-emulator/lib/DataLoader.js"
+import _RealUserAgents from "@ulixee/real-user-agents"
 import { isEmpty, last, random, startCase } from "lodash-es"
 import { ReadonlyDeep } from "type-fest"
 import { fetch } from "undici"
 import YAML from "yaml"
 
 import Init from "../commands/init.js"
-import { DATA_FILE } from "./constants.js"
+import { DATA_FILE, REQUEST_HEADERS } from "./constants.js"
 import {
   DataStore,
   Errors,
@@ -21,6 +24,11 @@ import {
   Post,
   User
 } from "./types.js"
+
+const DataLoader = (_DataLoader as any as { default: typeof _DataLoader }).default
+const RealUserAgents = (_RealUserAgents as any as { default: typeof _RealUserAgents }).default
+
+type IUserAgentOption = Parameters<InstanceType<typeof _DataLoader>["as"]>[0]
 
 // Utility functions
 
@@ -128,7 +136,8 @@ export function findFirstNewPostIndex(
 
 // https://github.com/nodejs/undici/discussions/1593#discussioncomment-3364109
 export async function download(url: string, path: string, filename: string = basename(new URL(url).pathname)) {
-  const response = await fetch(url)
+  const headers = url.includes(".mp4") ? REQUEST_HEADERS.fetch : REQUEST_HEADERS.image
+  const response = await fetch(url, { headers })
   if (response.body == null) throw Errors.DOWNLOAD_FAILED
 
   if (!filename.includes(".")) filename = `${filename}.${response.headers.get("Content-Type")!.split("/").pop()!}`
@@ -149,7 +158,51 @@ export async function writeData(data: DataStore, checkForEmptyValue = true) {
   await writeFile(DATA_FILE, yamlString)
 }
 
+export function getChromeDefaultHeaders() {
+  const operatingSystemName = "windows"
+  const operatingSystemVersion = { major: "11" }
+  const operatingSystemId = `${operatingSystemName}-${operatingSystemVersion.major}`
+
+  const dataLoader = new DataLoader()
+  const browserEngineOption = dataLoader.browserEngineOptions[0]
+  const userAgentOption: IUserAgentOption = {
+    browserName: browserEngineOption.name,
+    browserVersion: { major: browserEngineOption.majorVersion.toString(), minor: "0" },
+    operatingSystemName,
+    // @ts-expect-error
+    operatingSystemVersion
+  }
+  const browserId = browserEngineOption.id
+
+  const { headers } = dataLoader.as(userAgentOption)
+  const userAgentString = RealUserAgents.where({ browserId, operatingSystemId })[0].pattern
+
+  return {
+    image: headersFrom(headers.https.Image[0], userAgentString),
+    fetch: headersFrom(
+      headers.https.Fetch.find(header => header.method == "GET" && header.originTypes.includes("cross-site"))!,
+      userAgentString
+    )
+  }
+}
+
 // Casting functions
+
+function headersFrom({ order, defaults }: IDataHeaderOrder, userAgentString: string) {
+  const headers = new Headers()
+  const additionalHeaders: Record<string, string> = {
+    "User-Agent": userAgentString,
+    Origin: "https://www.instagram.com",
+    Referer: "https://www.instagram.com/"
+  }
+
+  for (const name of order) {
+    const value = name in defaults ? defaults[name][0] : name in additionalHeaders ? additionalHeaders[name] : null
+    if (value !== null) headers.set(name, value)
+  }
+
+  return headers
+}
 
 function userFrom(instagramUser: { pk: string; username: string; full_name: string }) {
   return pick(instagramUser, ["pk", "username", "full_name"]) as User
