@@ -162,43 +162,6 @@
         white-space: nowrap;
       }
     </style>
-  </head>
-
-  <body>
-    <div id="app">
-      <div class="grid">
-        <div
-          v-for="(post, index) in posts"
-          class="grid-item"
-          :class="{ active: post == activePost }"
-          @click="activePost = post"
-        >
-          <template v-if="mediaPaths[post.code].length > 0">
-            <img v-if="isImage(mediaPaths[post.code][0])" :data-src="mediaPaths[post.code][0]" class="grid-media" />
-            <video v-else :data-src="mediaPaths[post.code][0]" class="grid-media" muted />
-          </template>
-          <div v-else class="grid-placeholder">{{ posts.length - index }}</div>
-        </div>
-      </div>
-
-      <div class="info">
-        <div class="swiper" v-show="activePostMedias.length > 0">
-          <div class="swiper-wrapper">
-            <div v-for="media in activePostMedias" class="swiper-slide">
-              <img v-if="isImage(media)" :src="media" />
-              <video v-else :src="media" controls />
-            </div>
-          </div>
-        </div>
-
-        <!-- Vertically center, https://stackoverflow.com/a/33455342 -->
-        <div
-          class="markdown-body"
-          v-html="tableHTML"
-          :style="activePostMedias.length == 0 ? { marginTop: 'auto' } : {}"
-        />
-      </div>
-    </div>
 
     <script type="importmap">
       {
@@ -342,5 +305,42 @@
         }
       }).mount("#app")
     </script>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="grid">
+        <div
+          v-for="(post, index) in posts"
+          class="grid-item"
+          :class="{ active: post == activePost }"
+          @click="activePost = post"
+        >
+          <template v-if="mediaPaths[post.code].length > 0">
+            <img v-if="isImage(mediaPaths[post.code][0])" :data-src="mediaPaths[post.code][0]" class="grid-media" />
+            <video v-else :data-src="mediaPaths[post.code][0]" class="grid-media" muted />
+          </template>
+          <div v-else class="grid-placeholder">{{ posts.length - index }}</div>
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="swiper" v-show="activePostMedias.length > 0">
+          <div class="swiper-wrapper">
+            <div v-for="media in activePostMedias" class="swiper-slide">
+              <img v-if="isImage(media)" :src="media" />
+              <video v-else :src="media" controls />
+            </div>
+          </div>
+        </div>
+
+        <!-- Vertically center, https://stackoverflow.com/a/33455342 -->
+        <div
+          class="markdown-body"
+          v-html="tableHTML"
+          :style="activePostMedias.length == 0 ? { marginTop: 'auto' } : {}"
+        />
+      </div>
+    </div>
   </body>
 </html>
