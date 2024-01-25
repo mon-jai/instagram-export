@@ -1,15 +1,15 @@
+import { once } from "events"
 import { createReadStream, existsSync } from "fs"
-import { lstat, readFile, readdir } from "fs/promises"
+import { readFile } from "fs/promises"
 import { createServer } from "http"
-import { resolve } from "path"
 
 import { Command, Flags } from "@oclif/core"
 import open from "open"
 import YAML from "yaml"
 
-import { DATA_FILE } from "../lib/constants.js"
+import { DATA_FILE, MEDIA_DIRECTORY_NAME } from "../lib/constants.js"
 import { DataStore } from "../lib/types.js"
-import { parseArchiveUrl, printNotInitializedMessage } from "../lib/utils.js"
+import { archiveInfoFrom, getMediaPaths, printNotInitializedMessage } from "../lib/utils.js"
 import generateViewHTML from "../lib/view-html.js"
 
 export default class View extends Command {
@@ -24,57 +24,35 @@ export default class View extends Command {
       flags: { port }
     } = await this.parse(View)
 
-    const mediaFolder = resolve("media")
-    const mediaFiles = await readdir(mediaFolder).catch(() => null)
+    const { url, posts: postsSortedByOldest } = YAML.parse(await readFile(DATA_FILE, "utf8")) as DataStore
 
-    const { url, posts } = YAML.parse(await readFile(DATA_FILE, "utf8")) as DataStore
+    const { archiveName } = archiveInfoFrom(url)
+    const posts = Array.from(postsSortedByOldest).reverse()
+    const mediaPaths = await getMediaPaths(postsSortedByOldest)
+    const html = await generateViewHTML({ archiveName, posts, mediaPaths })
 
-    const { archiveName } = parseArchiveUrl(url)
-    const postsSortedByRecency = Array.from(posts).reverse()
-    const mediaPaths = Object.fromEntries<string[]>(
-      mediaFiles !== null
-        ? await Promise.all(
-            posts.map(async (post): Promise<[string, string[]]> => {
-              const postFolder = resolve(mediaFolder, post.code)
-              let medias
-
-              if (mediaFiles.includes(post.code) && (await lstat(postFolder)).isDirectory()) {
-                medias = (await readdir(postFolder)).map(file => `${post.code}/${file}`)
-              } else {
-                const mediaFile =
-                  mediaFiles.find(file => file == `${post.code}.mp4`) ??
-                  mediaFiles.find(file => file.startsWith(post.code))
-                medias = mediaFile !== undefined ? [mediaFile] : []
-              }
-
-              return [post.code, medias]
-            })
-          )
-        : posts.map(post => [post.code, []])
-    )
-
-    const html = await generateViewHTML({ archiveName, posts: postsSortedByRecency, mediaPaths })
-
-    createServer((request, response) => {
-      const return404 = () => {
-        response.statusCode = 404
-        response.end()
-      }
-
-      if (request.url == "/" || request.url == "index.html") {
+    const server = createServer((request, response) => {
+      if (request.url == "/") {
         response.end(html)
-      } else {
-        const filePath = resolve(mediaFolder, request.url!.replace(/^\//, ""))
-
-        if (existsSync(filePath)) createReadStream(filePath).pipe(response)
-        else return404()
+        return
       }
-    }).listen(port, async () => {
-      const url = `http://localhost${port != 80 ? ":" + port : ""}/`
 
-      console.log(`View collection at: ${url}`)
-      await open(url)
+      const filePath = request.url!.replace(/^\//, "")
+      if (filePath.startsWith(MEDIA_DIRECTORY_NAME) && existsSync(filePath)) {
+        createReadStream(filePath).pipe(response)
+        return
+      }
+
+      response.statusCode = 404
+      response.end()
     })
+
+    server.listen(port)
+    await once(server, "listening")
+
+    const archiveUrl = `http://localhost${port != 80 ? ":" + port : ""}/`
+    console.log(`View collection at: ${archiveUrl}`)
+    await open(archiveUrl)
   }
 
   async catch(error: any) {

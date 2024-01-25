@@ -6,7 +6,7 @@ import dedent from "string-dedent"
 
 import { DATA_FILE, DATA_FILENAME } from "../lib/constants.js"
 import { DataStore, Errors, MediaDownloadOption } from "../lib/types.js"
-import { parseArchiveUrl, writeData } from "../lib/utils.js"
+import { archiveInfoFrom, writeData } from "../lib/utils.js"
 
 export default class Init extends Command {
   static description = dedent`
@@ -27,7 +27,7 @@ export default class Init extends Command {
         message: "Url of collection:",
         validate(input) {
           try {
-            parseArchiveUrl(input)
+            archiveInfoFrom(input)
             return true
           } catch (error) {
             return false

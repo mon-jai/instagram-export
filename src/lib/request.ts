@@ -1,5 +1,3 @@
-import { existsSync } from "fs"
-import { mkdir } from "fs/promises"
 import { dirname, resolve } from "path"
 import { URL, fileURLToPath } from "url"
 
@@ -12,11 +10,11 @@ import { ReadonlyDeep } from "type-fest"
 import { MEDIA_FOLDER } from "./constants.js"
 import { Errors, InstagramPost, InstagramResponse, MediaSource, Post } from "./types.js"
 import {
+  archiveInfoFrom,
   download,
-  findFirstNewPostIndex,
+  getFirstNewPostIndex,
+  getRandomTypingDelay,
   instagramPostsFrom,
-  parseArchiveUrl,
-  randomTypingDelay,
   replaceLine,
   sleep
 } from "./utils.js"
@@ -52,9 +50,9 @@ async function readAndInputVerificationCode(page: Page) {
         // Clear previous input, https://stackoverflow.com/a/52633235
         await page.click(verificationCodeInputSelector)
         while ((await page.$eval(verificationCodeInputSelector, el => el.value.length)) > 0) {
-          await page.keyboard.press("Backspace", { delay: randomTypingDelay() })
+          await page.keyboard.press("Backspace", { delay: getRandomTypingDelay() })
         }
-        await page.type(verificationCodeInputSelector, verificationCode, { delay: randomTypingDelay() })
+        await page.type(verificationCodeInputSelector, verificationCode, { delay: getRandomTypingDelay() })
 
         const authenticationResponse = (
           await Promise.all([
@@ -80,8 +78,8 @@ async function login(page: Page, username: string) {
   ).password as string
 
   // Already in login page
-  await page.type('input[name="username"]', username, { delay: randomTypingDelay() })
-  await page.type('input[name="password"]', password, { delay: randomTypingDelay() })
+  await page.type('input[name="username"]', username, { delay: getRandomTypingDelay() })
+  await page.type('input[name="password"]', password, { delay: getRandomTypingDelay() })
   // Register waitForNavigation() first, then trigger navigation
   await Promise.all([page.waitForNavigation(), page.click('button[type="submit"]')])
 
@@ -156,7 +154,7 @@ async function extractPostsFromAPIResponse(
 
         const json: InstagramResponse | null = await response.json().catch(() => null)
 
-        if (json === null) return
+        if (json == null) return
         responses.push(json)
         replaceLine(`Fetching posts from Instagram... (page ${responses.length})`)
 
@@ -215,7 +213,7 @@ export async function fetchNewPosts(
   maxPage: number
 ): Promise<InstagramPost[]> {
   const userDataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../puppeteer-user-data")
-  const username = parseArchiveUrl(collectionUrl).username
+  const { username } = archiveInfoFrom(collectionUrl)
 
   const browser = await puppeteer.launch({
     headless: openWindow ? false : "new",
@@ -235,11 +233,11 @@ export async function fetchNewPosts(
     // Wait for homepage to load
     await page.waitForSelector("main")
 
-    if ((await page.$("#loginForm")) !== null) await login(page, username)
+    if ((await page.$("#loginForm")) != null) await login(page, username)
     else console.log("Already logged in")
 
     const rawPosts = await extractPostsFromAPIResponse(page, collectionUrl, postsSavedFromLastRun, maxPage)
-    const firstNewPostIndex = findFirstNewPostIndex(rawPosts, postsSavedFromLastRun)
+    const firstNewPostIndex = getFirstNewPostIndex(rawPosts, postsSavedFromLastRun)
 
     return rawPosts.slice(firstNewPostIndex)
   } finally {

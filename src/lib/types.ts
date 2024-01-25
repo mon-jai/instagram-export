@@ -52,7 +52,7 @@ export type IWithMediaURL = ReadonlyDeep<{
   video_versions?: VideoVersion[]
 }>
 
-export type IWithMedia = ReadonlyDeep<{ code: string; carousel_media: CarouselMedia[] } & IWithMediaURL>
+export type IWithMedia = ReadonlyDeep<{ code: string; carousel_media?: CarouselMedia[] } & IWithMediaURL>
 
 export enum MediaDownloadOption {
   "all" = "all",

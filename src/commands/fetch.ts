@@ -1,5 +1,5 @@
 import { existsSync } from "fs"
-import { mkdir, readFile, writeFile } from "fs/promises"
+import { mkdir, readFile } from "fs/promises"
 
 import { Command, Flags } from "@oclif/core"
 import { uniqBy } from "lodash-es"
