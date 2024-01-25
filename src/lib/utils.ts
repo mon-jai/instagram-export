@@ -1,5 +1,5 @@
 import { lstat, mkdir, readdir, writeFile } from "fs/promises"
-import { basename, resolve } from "path"
+import { resolve } from "path"
 
 import { Command, Help } from "@oclif/core"
 import { IDataHeaderOrder } from "@ulixee/default-browser-emulator/interfaces/IBrowserData.js"
@@ -66,7 +66,7 @@ export async function printNotInitializedMessage(command: Command) {
 }
 
 // https://github.com/nodejs/undici/discussions/1593#discussioncomment-3364109
-export async function download(url: string, path: string, filename: string = basename(new URL(url).pathname)) {
+export async function download(url: string, path: string, filename: string) {
   const headers = url.includes(".mp4") ? REQUEST_HEADERS.fetch : REQUEST_HEADERS.image
   const response = await fetch(url, { headers })
   if (response.body == null) throw Errors.DOWNLOAD_FAILED
@@ -171,6 +171,9 @@ export function getFirstNewPostIndex(
 }
 
 export async function getMediaPaths(posts: ReadonlyDeep<Post[]>) {
+  const mediaFileIndexRegex = /^(\d+)_/
+  const getIndex = (filename: string) => parseInt(filename.match(mediaFileIndexRegex)![1]) - 1
+
   const mediaFolder = resolve("media")
   const medias = await readdir(mediaFolder).catch(() => null)
   if (medias == null) return Object.fromEntries(posts.map(post => [post.code, []]))
@@ -179,17 +182,24 @@ export async function getMediaPaths(posts: ReadonlyDeep<Post[]>) {
     await Promise.all(
       posts.map(async (post): Promise<[string, string[]]> => {
         const postFolder = resolve(mediaFolder, post.code)
-        let mediaFiles
+        let mediaFilePaths
 
         if (medias.includes(post.code) && (await lstat(postFolder)).isDirectory()) {
-          mediaFiles = (await readdir(postFolder)).map(file => `${post.code}/${file}`)
+          const unsortedMediaFilenames = await readdir(postFolder)
+          const sortedMediaFilenames = unsortedMediaFilenames.toSorted(
+            unsortedMediaFilenames.every(mediaFileIndexRegex.test.bind(mediaFileIndexRegex))
+              ? (a, b) => getIndex(a) - getIndex(b)
+              : (a, b) => a.localeCompare(b)
+          )
+          mediaFilePaths = sortedMediaFilenames.map(filename => `${post.code}/${filename}`)
         } else {
-          const mediaFile =
-            medias.find(file => file == `${post.code}.mp4`) ?? medias.find(file => file.startsWith(post.code))
-          mediaFiles = mediaFile != undefined ? [mediaFile] : []
+          const mediaFilename =
+            medias.find(filename => filename == `${post.code}.mp4`) ??
+            medias.find(filename => filename.startsWith(post.code))
+          mediaFilePaths = mediaFilename != undefined ? [mediaFilename] : []
         }
 
-        return [post.code, mediaFiles.map(mediaFile => `/${MEDIA_DIRECTORY_NAME}/${mediaFile}`)]
+        return [post.code, mediaFilePaths.map(mediaFilePath => `/${MEDIA_DIRECTORY_NAME}/${mediaFilePath}`)]
       })
     )
   )

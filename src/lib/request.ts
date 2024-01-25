@@ -1,4 +1,4 @@
-import { dirname, resolve } from "path"
+import { basename, dirname, resolve } from "path"
 import { URL, fileURLToPath } from "url"
 
 import { queue, retry } from "async"
@@ -250,8 +250,15 @@ export async function downloadMedias(mediaSources: ReadonlyDeep<MediaSource[]>) 
 
   const downloadQueue = queue<MediaSource>(async media => {
     return retry(10, async () => {
-      if (media.type == "image" || media.type == "video") await download(media.url, MEDIA_FOLDER, media.code)
-      else await Promise.all(media.urls.map(url => download(url, resolve(MEDIA_FOLDER, media.code))))
+      if (media.type == "image" || media.type == "video") {
+        await download(media.url, MEDIA_FOLDER, media.code)
+      } else {
+        await Promise.all(
+          media.urls.map((url, index) =>
+            download(url, resolve(MEDIA_FOLDER, media.code), `${index + 1}_${basename(new URL(url).pathname)}`)
+          )
+        )
+      }
 
       downloadedCount++
       replaceLine(`Fetching media... ${downloadedCount}/${mediaSources.length}`)
