@@ -180,9 +180,8 @@
 
       function observerCallback(entries) {
         for (const entry of entries) {
-          if (entry.intersectionRatio > 0) {
+          if (entry.isIntersecting) {
             const mediaTag = entry.target.children[0]
-
             if (!mediaTag.hasAttribute("src")) mediaTag.src = mediaTag.dataset.src
             entry.target.classList.remove("outside-viewport")
           } else {
