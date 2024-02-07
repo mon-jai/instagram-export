@@ -13,33 +13,31 @@ export default class Delete extends Command {
 
   static args = {
     code: Args.string({
-      description: "Code of the post to be deleted from archive",
+      description: "Code of posts to be deleted from the archive (could be more than one)",
       required: true
     })
   }
 
   public async run(): Promise<void> {
-    const {
-      args: { code }
-    } = await this.parse(Delete)
-
+    const codesToDelete = this.argv
     const oldData: Partial<DataStore> = YAML.parse(await readFile(DATA_FILE, "utf8"))
     isValidDataStore(oldData)
     const { url, download_media, posts } = oldData
 
-    const pathToDelete = (await readdir(MEDIA_FOLDER)).find(filename => filename.startsWith(code))
+    for (const code of codesToDelete) {
+      const pathToDelete = (await readdir(MEDIA_FOLDER)).find(filename => filename.startsWith(code))
+      if (pathToDelete == undefined) continue
 
-    if (pathToDelete != undefined) {
       const absolutePathToDelete = resolve(MEDIA_FOLDER, pathToDelete)
       const deletedFilesCount = (await lstat(absolutePathToDelete)).isDirectory()
         ? (await readdir(absolutePathToDelete)).length
         : 1
 
       await rm(absolutePathToDelete, { recursive: true })
-      console.log(`Deleted ${deletedFilesCount} medias`)
+      console.log(`${code}: deleted ${deletedFilesCount} medias`)
     }
 
-    await writeData({ url, download_media, posts: posts.filter(post => post.code != code) })
+    await writeData({ url, download_media, posts: posts.filter(post => !codesToDelete.includes(post.code)) })
   }
 
   async catch(error: any) {

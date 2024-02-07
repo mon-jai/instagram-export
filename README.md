@@ -26,7 +26,7 @@ USAGE
   $ instagram-export delete CODE
 
 ARGUMENTS
-  CODE  Code of the post to be deleted from archive
+  CODE  Code of posts to be deleted from the archive (could be more than one)
 
 DESCRIPTION
   Delete a post from an archive
