@@ -75,20 +75,31 @@
         font-size: 5rem;
         background: rgb(239, 239, 239);
 
+        display: grid;
+        place-items: center;
+      }
+
+      .info-container {
+        width: 1241px;
+        padding: 0 0.75rem;
         display: flex;
         align-items: center;
-        justify-content: center;
+      }
+
+      .info-container .arrow-button {
+        cursor: pointer;
       }
 
       .info {
-        max-width: 1241px;
-        padding: 52px;
-        flex: 1;
-
         display: flex;
         flex-direction: column;
         gap: 52px;
 
+        /* Stretch table width for posts without media */
+        flex-grow: 1;
+
+        height: 100%;
+        padding: 52px;
         overflow: auto;
       }
 
@@ -261,17 +272,20 @@
           const posts = { posts }
           return {
             posts,
-            activePost: posts[0],
+            activePostIndex: 0,
             mediaPaths: { mediaPaths },
             observer: new IntersectionObserver(observerCallback)
           }
         },
         computed: {
-          tableHTML() {
-            return createTableFromObject(this.activePost)
+          activePost() {
+            return this.posts[this.activePostIndex]
           },
           activePostMedias() {
             return this.mediaPaths[this.activePost.code]
+          },
+          tableHTML() {
+            return createTableFromObject(this.activePost)
           }
         },
         methods: {
@@ -284,6 +298,12 @@
             return (
               media.endsWith(".jpg") || media.endsWith(".jpeg") || media.endsWith(".webp") || media.endsWith(".heic")
             )
+          },
+          jumpToPreviousPost() {
+            if (this.activePostIndex > 0) this.activePostIndex--
+          },
+          jumpToNextPost() {
+            if (this.activePostIndex < this.posts.length - 1) this.activePostIndex++
           }
         },
         mounted() {
@@ -294,7 +314,13 @@
             navigation: true,
             pagination: true
           })
+
           this.initObserver()
+
+          addEventListener("keydown", ({ key }) => {
+            if (key == "ArrowLeft") this.jumpToPreviousPost()
+            else if (key == "ArrowRight") this.jumpToNextPost()
+          })
         },
         updated() {
           this.swiper.update()
@@ -312,8 +338,8 @@
         <div
           v-for="(post, index) in posts"
           class="grid-item"
-          :class="{ active: post == activePost }"
-          @click="activePost = post"
+          :class="{ active: index == activePostIndex }"
+          @click="activePostIndex = index"
         >
           <template v-if="mediaPaths[post.code].length > 0">
             <img v-if="isImage(mediaPaths[post.code][0])" :data-src="mediaPaths[post.code][0]" class="grid-media" />
@@ -323,21 +349,35 @@
         </div>
       </div>
 
-      <div class="info">
-        <div class="swiper" v-show="activePostMedias.length > 0">
-          <div class="swiper-wrapper">
-            <div v-for="media in activePostMedias" class="swiper-slide">
-              <img v-if="isImage(media)" :src="media" />
-              <video v-else :src="media" controls />
+      <div class="info-container">
+        <img
+          class="arrow-button"
+          src="https://esm.sh/@primer/octicons@19.8.0/build/svg/chevron-left-24.svg"
+          @click="jumpToPreviousPost"
+        />
+
+        <div class="info">
+          <div class="swiper" v-show="activePostMedias.length > 0">
+            <div class="swiper-wrapper">
+              <div v-for="media in activePostMedias" class="swiper-slide">
+                <img v-if="isImage(media)" :src="media" />
+                <video v-else :src="media" controls />
+              </div>
             </div>
           </div>
+
+          <!-- Vertically center, https://stackoverflow.com/a/33455342 -->
+          <div
+            class="markdown-body"
+            v-html="tableHTML"
+            :style="activePostMedias.length == 0 ? { marginTop: 'auto' } : {}"
+          ></div>
         </div>
 
-        <!-- Vertically center, https://stackoverflow.com/a/33455342 -->
-        <div
-          class="markdown-body"
-          v-html="tableHTML"
-          :style="activePostMedias.length == 0 ? { marginTop: 'auto' } : {}"
+        <img
+          class="arrow-button"
+          src="https://esm.sh/@primer/octicons@19.8.0/build/svg/chevron-right-24.svg"
+          @click="jumpToNextPost"
         />
       </div>
     </div>

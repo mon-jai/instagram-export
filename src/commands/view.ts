@@ -39,7 +39,7 @@ export default class View extends Command {
         return
       }
 
-      const filePath = request.url!.replace(/^\//, "")
+      const filePath = new URL(request.url!, `http://${request.headers.host}`).pathname.replace(/^\//, "")
       if (filePath.startsWith(MEDIA_DIRECTORY_NAME) && existsSync(filePath)) {
         createReadStream(filePath).pipe(response)
         return
@@ -48,6 +48,8 @@ export default class View extends Command {
       const assetFilePath = resolve(ASSETS_PATH, filePath)
       if (existsSync(assetFilePath)) {
         if (isJavaScriptFile(assetFilePath)) response.setHeader("Content-Type", "application/javascript")
+        else if (assetFilePath.endsWith(".svg")) response.setHeader("Content-Type", "image/svg+xml")
+
         createReadStream(assetFilePath).pipe(response)
         return
       }

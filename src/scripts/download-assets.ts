@@ -3,7 +3,6 @@ import { mkdir, readFile, rm, writeFile } from "fs/promises"
 import { dirname, join, resolve } from "path"
 
 import { ASSETS_PATH, REQUEST_HEADERS, VIEW_HTML_PATH, VIEW_HTML_SRC_PATH } from "../lib/constants.js"
-import { isJavaScriptFile } from "../lib/utils.js"
 
 type RegexResult = (RegExpMatchArray & { groups: { package: string; path?: string } })[]
 type Asset = { url: string; path: string; source?: string }
@@ -26,7 +25,7 @@ async function fetchAssets(htmlSrc: string) {
       path: join(
         groups.package,
         groups.path ?? "",
-        groups.path == undefined || !(isJavaScriptFile(groups.path) || groups.path.endsWith(".css")) ? "index.js" : ""
+        groups.path == undefined || !groups.path.split("/").pop()!.includes(".") ? "index.js" : ""
       ).replaceAll("\\", "/")
     })
   )
