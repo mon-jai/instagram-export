@@ -216,7 +216,7 @@ export async function fetchNewPosts(
   const { username } = archiveInfoFrom(collectionUrl)
 
   const browser = await puppeteer.launch({
-    headless: openWindow ? false : "new",
+    headless: !openWindow,
     userDataDir: userDataDir,
     args: [`--profile-directory=${username}`],
     // ProtocolError: ... Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.

@@ -62,7 +62,7 @@ export async function printNotInitializedMessage(command: Command) {
   console.error(
     `Current directory not initialized, make sure to initialize it with \`${command.config.bin} ${Init.id}\` before running this command\n`
   )
-  await new Help(command.config).showCommandHelp(Init)
+  await new Help(command.config).showCommandHelp(Init as any as Command.Loadable)
 }
 
 // https://github.com/nodejs/undici/discussions/1593#discussioncomment-3364109

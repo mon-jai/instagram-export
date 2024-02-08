@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-import oclif from "@oclif/core"
+import { execute } from "@oclif/core"
 
-oclif
-  .run(process.argv.slice(2), import.meta.url)
-  .then(oclif.flush)
-  .catch(oclif.Errors.handle)
+await execute({ dir: import.meta.url })
