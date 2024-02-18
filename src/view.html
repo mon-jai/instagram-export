@@ -6,6 +6,8 @@
     <title>{ archiveName }</title>
 
     <style>
+      @import "https://rsms.me/inter/inter.css";
+
       @import "https://esm.sh/@primer/css@21/dist/color-modes.css";
       @import "https://esm.sh/@primer/css@21/dist/base.css";
       @import "https://esm.sh/@primer/css@21/dist/markdown.css";
@@ -20,6 +22,7 @@
       }
 
       body {
+        font-family: InterVariable, sans-serif;
         margin: 0;
         background-color: var(--background-color);
       }
@@ -176,6 +179,8 @@
       }
 
       .markdown-body {
+        font-family: inherit;
+
         /* Vertically center, https://stackoverflow.com/a/33455342 */
         margin-bottom: auto;
       }
