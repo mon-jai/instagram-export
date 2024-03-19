@@ -11,6 +11,7 @@
       @import "https://esm.sh/@primer/css@21/dist/color-modes.css";
       @import "https://esm.sh/@primer/css@21/dist/base.css";
       @import "https://esm.sh/@primer/css@21/dist/markdown.css";
+      @import "https://esm.sh/@primer/css@21/dist/forms.css";
 
       @import "https://esm.sh/swiper@10/swiper.min.css";
       @import "https://esm.sh/swiper@10/modules/navigation.min.css";
@@ -19,6 +20,7 @@
       :root {
         --background-color: rgb(250, 250, 250);
         --grid-padding: 52px;
+        --grid-gap: 28px;
       }
 
       body {
@@ -48,28 +50,32 @@
         background-color: var(--background-color);
         padding: var(--grid-padding) 0 1rem;
 
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+
         position: sticky;
         top: 0;
         z-index: 1;
       }
 
-      .header > h1 {
+      .metadata > h1 {
         line-height: 1;
         margin-bottom: 0.5rem;
       }
 
-      .header > h2 {
+      .metadata > h2 {
         color: var(--color-fg-muted);
       }
 
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 28px;
+        gap: var(--grid-gap);
       }
 
       .grid-item {
-        padding-top: 100%;
+        aspect-ratio: 1 / 1;
         border: 1px solid rgb(219, 219, 219);
         border-radius: 4px;
 
@@ -88,13 +94,14 @@
       .grid-item.active:after {
         width: 100%;
         height: 100%;
-        position: absolute;
-        top: 0;
       }
 
       .grid-item.active:after {
         content: "";
         background-image: linear-gradient(to top, rgba(38, 38, 38, 0.6), rgba(255, 255, 255, 0));
+        position: absolute;
+        top: 0; /* For placeholder mode */
+        left: 0;
       }
 
       .grid-media {
@@ -204,6 +211,12 @@
         width: 1%;
         white-space: nowrap;
       }
+
+      .not-found-message {
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+      }
     </style>
 
     <script type="importmap">
@@ -211,7 +224,7 @@
         "imports": {
           "swiper": "https://esm.sh/swiper@10?exports=default",
           "swiper/modules": "https://esm.sh/swiper@10/modules?exports=Navigation,Pagination",
-          "vue": "https://esm.sh/vue@3/dist/vue.esm-browser.prod.js?exports=createApp"
+          "vue": "https://esm.sh/vue@3/dist/vue.esm-browser.prod.js?exports=createApp,nextTick,ref"
         }
       }
     </script>
@@ -219,7 +232,19 @@
     <script type="module">
       import Swiper from "swiper"
       import { Navigation, Pagination } from "swiper/modules"
-      import { createApp } from "vue"
+      import { createApp, nextTick, ref } from "vue"
+
+      function getLeafValuesFromObject(value, leafValues = []) {
+        if (Array.isArray(value)) {
+          for (const item of value) getLeafValuesFromObject(item, leafValues)
+        } else if (typeof value == "object") {
+          for (const propertyValue of Object.values(value)) getLeafValuesFromObject(propertyValue, leafValues)
+        } else {
+          leafValues.push(value)
+        }
+
+        return leafValues
+      }
 
       function observerCallback(entries) {
         for (const entry of entries) {
@@ -271,10 +296,6 @@
           return createATag(`https://www.instagram.com/p/${value}/`, value)
         }
 
-        if (key == "taken_at") {
-          return new Date(value * 1000).toLocaleString()
-        }
-
         if (key == "user" || key == "coauthor_producers" || key == "tagged_user") {
           const { username, full_name } = value
           return createATag(
@@ -299,24 +320,37 @@
         return typeof value == "object" ? createTableFromObject(value) : value
       }
 
+      const allPosts = { posts }.map(post => ({ ...post, taken_at: new Date(post.taken_at * 1000).toLocaleString() }))
+
       createApp({
         data() {
-          const posts = { posts }
           return {
-            posts,
-            activePostIndex: 0,
-            mediaPaths: { mediaPaths },
+            activePostCode: "",
+            filterString: "",
             observer: new IntersectionObserver(observerCallback)
           }
         },
         computed: {
+          posts() {
+            if (this.filterString == "") return this.allPosts
+            return this.allPosts.filter(post =>
+              this.postsLeafValues[post.code].some(value => value.toString().includes(this.filterString))
+            )
+          },
+          activePostIndex() {
+            return this.posts.findIndex(post => post.code == this.activePostCode)
+          },
           activePost() {
             return this.posts[this.activePostIndex]
           },
           activePostMedias() {
+            if (this.activePost == undefined) return []
             return this.mediaPaths[this.activePost.code]
           },
           tableHTML() {
+            if (this.activePost == undefined) {
+              return `<div class="not-found-message">No results matched your filter.</div>`
+            }
             return createTableFromObject(this.activePost)
           }
         },
@@ -332,13 +366,43 @@
             )
           },
           jumpToPreviousPost() {
-            if (this.activePostIndex > 0) this.activePostIndex--
+            if (this.activePostIndex <= 0) return
+            this.activePostCode = this.posts[this.activePostIndex - 1].code
           },
           jumpToNextPost() {
-            if (this.activePostIndex < this.posts.length - 1) this.activePostIndex++
+            if (this.activePostIndex >= this.posts.length - 1) return
+            this.activePostCode = this.posts[this.activePostIndex + 1].code
+          }
+        },
+        watch: {
+          filterString() {
+            if (this.posts.find(post => post.code == this.activePostCode) == undefined && this.posts.length > 0) {
+              this.activePostCode = this.posts[0].code
+              return
+            }
+
+            // https://stackoverflow.com/questions/24665602/scrollintoview-scrolls-just-too-far#comment121882160_67923821
+            nextTick(() => {
+              const itemOffsetTop = document.querySelector(`[data-code=${this.activePostCode}]`).offsetTop
+              const top = itemOffsetTop - this.itemMargin - this.headerHeight
+              this.gridContainer.scrollTo({ top, behavior: "smooth" })
+            })
+          }
+        },
+        setup() {
+          return {
+            allPosts,
+            postsLeafValues: Object.fromEntries(allPosts.map(post => [post.code, getLeafValuesFromObject(post)])),
+            mediaPaths: { mediaPaths },
+            gridContainer: ref(null),
+            gridHeader: ref(null)
           }
         },
         mounted() {
+          this.activePostCode = this.posts[0].code
+          this.itemMargin = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--grid-gap"))
+          this.headerHeight = this.gridHeader.offsetHeight
+
           this.swiper = new Swiper(".swiper", {
             createElements: true,
             grabCursor: true,
@@ -346,7 +410,6 @@
             navigation: true,
             pagination: true
           })
-
           this.initObserver()
 
           addEventListener("keydown", ({ key }) => {
@@ -366,18 +429,24 @@
 
   <body>
     <div id="app">
-      <div class="grid-container">
-        <div class="header">
-          <h1>{ archiveName }</h1>
-          <h2>{{ posts.length }} posts</h2>
+      <div class="grid-container" ref="gridContainer">
+        <div class="header" ref="gridHeader">
+          <div class="metadata">
+            <h1>{ archiveName }</h1>
+            <h2>{{ posts.length }} posts</h2>
+          </div>
+
+          <input v-model="filterString" class="form-control" placeholder="Filter posts" />
         </div>
 
         <div class="grid">
           <div
             v-for="(post, index) in posts"
+            :key="post.code"
             class="grid-item"
             :class="{ active: index == activePostIndex }"
-            @click="activePostIndex = index"
+            @click="activePostCode = post.code"
+            :data-code="post.code"
           >
             <template v-if="mediaPaths[post.code].length > 0">
               <img v-if="isImage(mediaPaths[post.code][0])" :data-src="mediaPaths[post.code][0]" class="grid-media" />
