@@ -408,7 +408,25 @@
             grabCursor: true,
             modules: [Navigation, Pagination],
             navigation: true,
-            pagination: true
+            pagination: true,
+            on: {
+              update(swiper) {
+                const firstMedia = swiper.slides[0]?.children[0]
+                if (firstMedia == undefined || firstMedia.tagName != "VIDEO") return
+                firstMedia.play()
+              },
+              slideChangeTransitionStart(swiper) {
+                const previousMedia = swiper.slides[swiper.previousIndex].children[0]
+                if (previousMedia == undefined || previousMedia.tagName != "VIDEO") return
+                previousMedia.pause()
+                previousMedia.currentTime = 0
+              },
+              slideChangeTransitionEnd(swiper) {
+                const activeMedia = swiper.slides[swiper.activeIndex].children[0]
+                if (activeMedia.tagName != "VIDEO") return
+                activeMedia.play()
+              }
+            }
           })
           this.initObserver()
 
