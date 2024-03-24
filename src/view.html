@@ -333,9 +333,7 @@
         computed: {
           posts() {
             if (this.filterString == "") return this.allPosts
-            return this.allPosts.filter(post =>
-              this.postsLeafValues[post.code].some(value => value.toString().includes(this.filterString))
-            )
+            return this.allPosts.filter(post => this.postsLeafValues[post.code].some(this.filterFunction))
           },
           activePostIndex() {
             return this.posts.findIndex(post => post.code == this.activePostCode)
@@ -352,6 +350,17 @@
               return `<div class="not-found-message">No results matched your filter.</div>`
             }
             return createTableFromObject(this.activePost)
+          },
+          filterFunction() {
+            const regExpMatch = this.filterString.match(/^\/(?<regExp>.*)\/$/)
+            if (regExpMatch != null) {
+              try {
+                const filterRegExp = new RegExp(regExpMatch.groups.regExp)
+                return value => value.toString().match(filterRegExp)
+              } catch {}
+            }
+
+            return value => value.toString().includes(this.filterString)
           }
         },
         methods: {
