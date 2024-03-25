@@ -19,6 +19,7 @@
     "/oclif.manifest.json"
   ],
   "dependencies": {
+    "@fastify/send": "^2.1.0",
     "@oclif/core": "^3",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^4",

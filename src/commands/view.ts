@@ -1,9 +1,8 @@
 import { once } from "events"
-import { createReadStream, existsSync } from "fs"
 import { readFile } from "fs/promises"
 import { createServer } from "http"
-import { resolve } from "path"
 
+import send from "@fastify/send"
 import { Command, Flags } from "@oclif/core"
 import open from "open"
 import dedent from "string-dedent"
@@ -11,7 +10,7 @@ import YAML from "yaml"
 
 import { ASSETS_PATH, DATA_FILE, MEDIA_DIRECTORY_NAME } from "../lib/constants.js"
 import { DataStore } from "../lib/types.js"
-import { archiveInfoFrom, getMediaPaths, isJavaScriptFile, printNotInitializedMessage } from "../lib/utils.js"
+import { archiveInfoFrom, getMediaPaths, printNotInitializedMessage } from "../lib/utils.js"
 import generateViewHTML from "../lib/view-html.js"
 
 export default class View extends Command {
@@ -35,28 +34,21 @@ export default class View extends Command {
     const html = await generateViewHTML({ archiveName, posts, mediaPaths, dev })
 
     const server = createServer((request, response) => {
-      if (request.url == "/") {
+      if (request.url == "/" || request.url == "/index.html") {
         response.end(html)
         return
       }
 
       const filePath = new URL(request.url!, `http://${request.headers.host}`).pathname.replace(/^\//, "")
-      if (filePath.startsWith(MEDIA_DIRECTORY_NAME) && existsSync(filePath)) {
-        createReadStream(filePath).pipe(response)
+
+      // Send files with partial responses (Ranges) support
+      // https://stackoverflow.com/a/65804889/
+      if (filePath.startsWith(MEDIA_DIRECTORY_NAME)) {
+        send(request, filePath).pipe(response)
         return
       }
 
-      const assetFilePath = resolve(ASSETS_PATH, filePath)
-      if (existsSync(assetFilePath)) {
-        if (isJavaScriptFile(assetFilePath)) response.setHeader("Content-Type", "application/javascript")
-        else if (assetFilePath.endsWith(".svg")) response.setHeader("Content-Type", "image/svg+xml")
-
-        createReadStream(assetFilePath).pipe(response)
-        return
-      }
-
-      response.statusCode = 404
-      response.end()
+      send(request, filePath, { root: ASSETS_PATH }).pipe(response)
     })
 
     process.on("SIGINT", () => process.exit(0))
