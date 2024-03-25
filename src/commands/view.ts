@@ -6,6 +6,7 @@ import { resolve } from "path"
 
 import { Command, Flags } from "@oclif/core"
 import open from "open"
+import dedent from "string-dedent"
 import YAML from "yaml"
 
 import { ASSETS_PATH, DATA_FILE, MEDIA_DIRECTORY_NAME } from "../lib/constants.js"
@@ -58,11 +59,15 @@ export default class View extends Command {
       response.end()
     })
 
+    process.on("SIGINT", () => process.exit(0))
     server.listen(port)
     await once(server, "listening")
 
     const archiveUrl = `http://localhost${port != 80 ? ":" + port : ""}/`
-    console.log(`View collection at: ${archiveUrl}`)
+    console.log(dedent`
+      View collection at: ${archiveUrl}
+      Exit with [Ctrl]+[C]
+    `)
     await open(archiveUrl)
   }
 
