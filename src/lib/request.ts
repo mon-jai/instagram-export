@@ -104,7 +104,7 @@ async function login(page: Page, username: string) {
   // Skip "Save Your Login Info?" page, if it is displayed
   if (new URL(page.url()).pathname == "/accounts/onetap/") {
     // Press "Not Now" button
-    await page.click("main section button")
+    await Promise.all([page.waitForNavigation(), page.click("main section button")])
   }
 
   console.log("Logging in... Done")
