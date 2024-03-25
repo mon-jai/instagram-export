@@ -105,11 +105,6 @@ export function isValidDataStore(data: Partial<DataStore>): asserts data is Data
   }
 }
 
-export function isJavaScriptFile(filePath: string) {
-  // https://stackoverflow.com/a/52312133/
-  return [".js", ".mjs"].some(extension => filePath.endsWith(extension))
-}
-
 // Getter functions
 
 export function getChromeDefaultHeaders() {
