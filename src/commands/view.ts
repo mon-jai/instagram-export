@@ -31,7 +31,7 @@ export default class View extends Command {
     const { archiveName } = archiveInfoFrom(url)
     const posts = Array.from(postsSortedByOldest).reverse()
     const mediaPaths = await getMediaPaths(postsSortedByOldest)
-    const html = await generateViewHTML({ archiveName, posts, mediaPaths, dev })
+    const html = await generateViewHTML({ archiveName, url, posts, mediaPaths, dev })
 
     const server = createServer((request, response) => {
       if (request.url == "/" || request.url == "/index.html") {
