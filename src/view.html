@@ -22,6 +22,8 @@
         --grid-padding: 52px;
         --grid-gap: 28px;
         --regexp-button-right: 8px;
+        --swiper-pagination-bullet-size: 8px;
+        --swiper-pagination-bottom: 12px;
       }
 
       body {
@@ -175,11 +177,16 @@
         flex-shrink: 0;
       }
 
-      .swiper img,
-      .swiper video {
+      .swiper-slide img,
+      .swiper-slide > video {
         width: 100%;
         height: 100%;
         object-fit: contain;
+      }
+
+      /* https://github.com/chromium/chromium/blob/124.0.6367.18/third_party/blink/renderer/modules/media_controls/resources/mediaControls.css */
+      .swiper-slide:not(:only-child) > video::-webkit-media-controls-panel {
+        padding-bottom: calc(var(--swiper-pagination-bullet-size) + var(--swiper-pagination-bottom));
       }
 
       .swiper-button-prev:after,
@@ -198,6 +205,10 @@
 
       .swiper-button-disabled {
         visibility: hidden;
+      }
+
+      .swiper-pagination-bullets {
+        line-height: 1;
       }
 
       .swiper-pagination-bullet {
