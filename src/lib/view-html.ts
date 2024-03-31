@@ -5,6 +5,7 @@ import { Post } from "./types.js"
 
 export default async function generateViewHTML(params: {
   archiveName: string
+  url: string
   posts: Post[]
   mediaPaths: { [K: string]: string[] }
   dev: boolean
