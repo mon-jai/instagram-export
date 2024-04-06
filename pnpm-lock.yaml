@@ -9,43 +9,43 @@ dependencies:
     specifier: ^2.1.0
     version: 2.1.0
   '@oclif/core':
-    specifier: ^3
+    specifier: ^3.26.0
     version: 3.26.0
   '@oclif/plugin-help':
-    specifier: ^6
+    specifier: ^6.0.20
     version: 6.0.20
   '@oclif/plugin-plugins':
-    specifier: ^4
+    specifier: ^4.3.10
     version: 4.3.10
   '@ulixee/default-browser-emulator':
-    specifier: ^2.0.0-alpha.26
+    specifier: 2.0.0-alpha.28
     version: 2.0.0-alpha.28
   '@ulixee/real-user-agents':
-    specifier: ^2.0.0-alpha.26
+    specifier: 2.0.0-alpha.28
     version: 2.0.0-alpha.28
   async:
     specifier: ^3.2.5
     version: 3.2.5
   inquirer:
-    specifier: ^9.2.14
+    specifier: ^9.2.17
     version: 9.2.17
   lodash-es:
     specifier: ^4.17.21
     version: 4.17.21
   open:
-    specifier: ^10.0.3
+    specifier: ^10.1.0
     version: 10.1.0
   puppeteer:
-    specifier: ^22.0.0
+    specifier: ^22.6.3
     version: 22.6.3(typescript@5.4.4)
   string-dedent:
     specifier: ^3.0.1
     version: 3.0.1
   undici:
-    specifier: ^6.6.2
+    specifier: ^6.11.1
     version: 6.11.1
   yaml:
-    specifier: ^2.3.4
+    specifier: ^2.4.1
     version: 2.4.1
 
 devDependencies:
@@ -62,10 +62,10 @@ devDependencies:
     specifier: ^4.17.12
     version: 4.17.12
   '@types/node':
-    specifier: ^20.11.16
+    specifier: ^20.12.5
     version: 20.12.5
   oclif:
-    specifier: ^4
+    specifier: ^4.7.6
     version: 4.7.6
   prettier:
     specifier: ^3.2.5
@@ -77,10 +77,10 @@ devDependencies:
     specifier: ^10.0.1
     version: 10.0.1(typescript@5.4.4)
   type-fest:
-    specifier: ^4.10.2
+    specifier: ^4.15.0
     version: 4.15.0
   typescript:
-    specifier: ^5.3.3
+    specifier: ^5.4.4
     version: 5.4.4
 
 packages:
