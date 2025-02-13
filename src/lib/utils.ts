@@ -118,6 +118,8 @@ export function getChromeDefaultHeaders() {
     browserName: browserEngineOption.name,
     browserVersion: { major: browserEngineOption.majorVersion.toString(), minor: "0" },
     operatingSystemName,
+    // getOperatingSystemParts, dataLoader.getBrowserOperatingSystemVersions
+    operatingSystemCleanName: "windows",
     // @ts-expect-error
     operatingSystemVersion
   }

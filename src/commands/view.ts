@@ -33,7 +33,7 @@ export default class View extends Command {
     const mediaPaths = await getMediaPaths(postsSortedByOldest)
     const html = await generateViewHTML({ archiveName, url, posts, mediaPaths, dev })
 
-    const server = createServer((request, response) => {
+    const server = createServer(async (request, response) => {
       if (request.url == "/" || request.url == "/index.html") {
         response.end(html)
         return
@@ -44,11 +44,13 @@ export default class View extends Command {
       // Send files with partial responses (Ranges) support
       // https://stackoverflow.com/a/65804889/
       if (filePath.startsWith(MEDIA_DIRECTORY_NAME)) {
-        send(request, filePath).pipe(response)
+        const { stream } = await send(request, filePath)
+        stream.pipe(response)
         return
       }
 
-      send(request, filePath, { root: ASSETS_PATH }).pipe(response)
+      const { stream } = await send(request, filePath, { root: ASSETS_PATH })
+      stream.pipe(response)
     })
 
     process.on("SIGINT", () => process.exit(0))
