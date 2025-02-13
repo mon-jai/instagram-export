@@ -24,6 +24,7 @@ export default class Init extends Command {
     const { url, download_media } = await inquirer.prompt<{ url: string; download_media: MediaDownloadOption }>([
       {
         name: "url",
+        type: "input",
         message: "Url of collection:",
         validate(input) {
           try {
@@ -36,6 +37,7 @@ export default class Init extends Command {
       },
       {
         name: "download_media",
+        type: "input",
         message: `Whether to download media. Valid values: ${Object.keys(MediaDownloadOption).join(", ")}`,
         default: "all",
         validate: input => input in MediaDownloadOption
