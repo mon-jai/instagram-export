@@ -83,7 +83,7 @@ export async function writeData(data: DataStore, checkForEmptyValue = true) {
     checkForEmptyValue ? (_key, value) => (isNullableOrEmpty(value) ? undefined : value) : null,
     { blockQuote: "literal", collectionStyle: "block" }
   )
-    .replace(/^  /gm, "")
+    .replace(/^  (?!\[)/gm, "")
     .replace(/^-/gm, "\n-")
 
   await writeFile(DATA_FILE, yamlString)
