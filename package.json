@@ -20,32 +20,32 @@
   ],
   "dependencies": {
     "@fastify/send": "^4.0.0",
-    "@oclif/core": "^4.2.6",
-    "@oclif/plugin-help": "^6.2.25",
-    "@oclif/plugin-plugins": "^5.4.31",
+    "@oclif/core": "^4.2.10",
+    "@oclif/plugin-help": "^6.2.27",
+    "@oclif/plugin-plugins": "^5.4.36",
     "@ulixee/default-browser-emulator": "2.0.0-alpha.31",
     "@ulixee/real-user-agents": "2.0.0-alpha.31",
     "async": "^3.2.6",
-    "inquirer": "^12.4.1",
+    "inquirer": "^12.5.2",
     "lodash-es": "^4.17.21",
-    "open": "^10.1.0",
-    "puppeteer": "^24.2.0",
+    "open": "^10.1.1",
+    "puppeteer": "^24.6.1",
     "string-dedent": "^3.0.1",
-    "undici": "^7.3.0",
-    "yaml": "^2.7.0"
+    "undici": "^7.8.0",
+    "yaml": "^2.7.1"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/async": "^3.2.24",
     "@types/inquirer": "^9.0.7",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^22.13.2",
-    "oclif": "^4.17.27",
-    "prettier": "^3.5.1",
-    "shx": "^0.3.4",
+    "@types/node": "^22.14.1",
+    "oclif": "^4.17.44",
+    "prettier": "^3.5.3",
+    "shx": "^0.4.0",
     "ts-unused-exports": "^11.0.1",
-    "type-fest": "^4.34.1",
-    "typescript": "^5.7.3"
+    "type-fest": "^4.40.0",
+    "typescript": "^5.8.3"
   },
   "oclif": {
     "bin": "instagram-export",
@@ -78,7 +78,7 @@
   ],
   "types": "dist/index.d.ts",
   "type": "module",
-  "packageManager": "pnpm@10.3.0+sha512.ee592eda8815a8a293c206bb0917c4bb0ff274c50def7cbc17be05ec641fc2d1b02490ce660061356bd0d126a4d7eb2ec8830e6959fb8a447571c631d5a2442d",
+  "packageManager": "pnpm@10.8.1",
   "pnpm": {
     "ignoredBuiltDependencies": [
       "yarn"
